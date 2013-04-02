@@ -20,6 +20,7 @@ analyzeMuts = function(mutations, genes, ignore=c("Silent"),
   rownames(res) = genes
   colnames(res) = c("total mutations", "unique mutations", "mutated samples", "unique samples")
   
+  locMutations = mutations
   if (!is.null(samples)) {
   	locMutations = mutations[which(mutations[, samplecol] %in% samples), ]
   }
