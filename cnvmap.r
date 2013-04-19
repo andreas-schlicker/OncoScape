@@ -56,7 +56,7 @@ getGeneLocs = function(genes, warningsfile="warnings.txt", genome="hg18") {
   		wf = file(warningsfile, "a")
     }
     cat(paste("Found several genomic locations for genes: ", res$hgnc_symbol[which(duplicated(res$hgnc_symbol))], "\n", sep=""), file=wf)
-    cat("Using the first location for each gene!", file=wf)
+    cat("Using the first location for each gene!\n", file=wf)
     res = res[!duplicated(res$hgnc_symbol), ]
   }
   
