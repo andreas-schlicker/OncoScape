@@ -51,14 +51,19 @@ readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
   read
 }
 
-exprsRNAseqV2 = function(read) {
+exprsRNAseqV2 = function(read, type=c("gene", "isoforms")) {
 	if (!require(stringr)) {
     stop("Could not load required package \"stringr\".")
   }
   
+  type = match.arg(type)
+  
 	# Get the gene symbol for each gene
 	# Column format = symbol|entrezid, e.g. A4GALT|53947
-	allGenes = sapply(read[[1]]$gene, function(x) { str_sub(x, start=1, end=str_locate(x, "\\|")[1,1]-1) } )
+	allGenes = read[[1]]$gene
+	if (type == "gene") {
+		allGenes = sapply(read[[1]]$gene, function(x) { str_sub(x, start=1, end=str_locate(x, "\\|")[1,1]-1) } )
+	}
 	
 	# Create the matrix containing the expression values
 	exprs = matrix(0.0, nrow=length(allGenes[-which(allGenes == "?")]), ncol=length(read))
@@ -70,7 +75,7 @@ exprsRNAseqV2 = function(read) {
 	colnames(exprs) = names(read)
 
 	exprs
-}
+}	
 
 infiniumMeth = function(read) {
 	# Create the methylation matrix
