@@ -51,7 +51,7 @@ readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
   read
 }
 
-exprsRNAseqV2 = function(read, type=c("gene", "isoforms")) {
+exprsRNAseqV2 = function(read, type=c("gene", "isoform")) {
 	if (!require(stringr)) {
     stop("Could not load required package \"stringr\".")
   }
@@ -65,13 +65,15 @@ exprsRNAseqV2 = function(read, type=c("gene", "isoforms")) {
 		allGenes = sapply(read[[1]]$gene, function(x) { str_sub(x, start=1, end=str_locate(x, "\\|")[1,1]-1) } )
 	}
 	
+	indexes = which(allGenes != "?")
+	
 	# Create the matrix containing the expression values
-	exprs = matrix(0.0, nrow=length(allGenes[-which(allGenes == "?")]), ncol=length(read))
+	exprs = matrix(0.0, nrow=length(allGenes[indexes]), ncol=length(read))
 	for (i in 1:length(read)) {
-	  exprs[, i] = read[[i]]$normalized_count[-which(allGenes == "?")]
+	  exprs[, i] = read[[i]]$normalized_count[indexes]
 	}
 	
-	rownames(exprs) = allGenes[-which(allGenes == "?")]
+	rownames(exprs) = allGenes[indexes]
 	colnames(exprs) = names(read)
 
 	exprs
