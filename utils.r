@@ -1,7 +1,7 @@
 # Perform Wilcoxon tests on the given matrix.
 # If the matchedSamples argument is defined, a paired test is performed. In this
 # case, the first length(matchedSamples) number of columns need to contain group
-# 1 and then all matched samples in group 2 should be given. Samples in groups 1
+# 1 and the remaining columns samples in group 2. Samples in groups 1
 # and 2 need to be in matched order.
 # If a non-paired test is to be performed, groups should be a named vector of
 # 1 and 2 indicating which samples belong to group 1 and 2, respectively.
@@ -46,11 +46,8 @@ doLevene = function(inpMat, groups, location=c("median", "mean", "trim.mean")) {
 	return(levene.p)
 }
 
-# Calculate prioritization score by scoring each data type
-# x should be a matrix with 10 columns
-# sig.cutoff is the significance cut-off used
-# direction either "down" or "up" for scoring evidence for the respective direction
-# of regulation in tumors 
+# Calculate prioritization score by summing over the rows
+# x should be a matrix with data types in the columns
 dataTypeScore = function(mat) {
   apply(mat, 1, sum, na.rm=TRUE) 
 }
