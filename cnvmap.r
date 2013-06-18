@@ -90,7 +90,7 @@ getCopyNumberValue = function(start, stop, segments) {
   }
 
   # Find the start segment
-  # Look for the biggest segment start that is still smaller than the gene start
+  # Look for the largest segment start that is still smaller than the gene start
   startSeg = 0
   startSeg = max(which(segments[, 2] <= start))
   # If the end of that segment is larger than the start, the gene doesn't touch
@@ -206,11 +206,13 @@ mapGenes2CN = function (genes, cnData, cases=FALSE, genome="hg18") {
 # is determined by matching sample names in the tumors and normals matrices.
 # The function uses doWilcox() as defined for the analysis of methylation data!
 # tumors is an aCGH data matrix with samples in the columns and genes in the rows
-# normals is a methylation data matrix with samples in the columns and genes in the rows
+# normals is a aCGH data matrix with samples in the columns and genes in the rows
 # Returns a named list with results from paired tests.
 runCGHComp = function(tumors, normals) {
   # Samples from tumors that have a matched normal
   tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
+  # Retain only the normal samples for which there is a tumor
+  normals = normals[, tumors.matchedsamples]
   # Rename normal samples to reflect the state
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
 
