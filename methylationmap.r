@@ -11,13 +11,15 @@
 runMethComp = function(tumors, normals, probes) {
   # Samples from tumors that have a matched normal
   tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
+  # Retain only the normal samples for which there is a tumor
+  normals = normals[, tumors.matchedsamples]
   # Rename normal samples to reflect the state
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
 
   tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
   names(tumors.groups) = c(colnames(tumors), colnames(normals))
 
-  # Which probes map to any of the CIS genes?
+  # Which probes map to any of the genes?
   selected.probes = intersect(intersect(rownames(tumors), rownames(normals)), probes)
 
   inpMat = cbind(tumors[selected.probes, tumors.matchedsamples], normals[selected.probes, ])
@@ -45,7 +47,7 @@ runMethComp = function(tumors, normals, probes) {
 # This method will impute missing data using the impute.knn function as implemented 
 # in the "impute" library. If this library is not installed or impute=FALSE, all
 # probes with missing values will be removed.
-# meth.data is the matrix will methylation probes in rows and samples in columns
+# meth.data is the matrix with methylation probes in rows and samples in columns
 # impute is a boolean indicating whether missing values should be imputed
 # no.na is the threshold giving the number of missing values from which on a
 # probe will be removed. By default, a probe is only removed if its value is
