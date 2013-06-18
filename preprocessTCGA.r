@@ -1,3 +1,9 @@
+# Renames the file by replacing the extract ID with the sample code
+# path relative or absolute pathname
+# pattern pattern to identify files that should be renamed
+# mapping the mapping of extract ID (names of the vector) to sample code (entries in the vector)
+# start position of the first character of the extract ID in the file name
+# end position after the last character of the extract ID in the file name
 replaceExtractId = function(path, pattern, mapping, start, end) {
 	if (!require(stringr)) {
     stop("Could not load required package \"stringr\".")
@@ -16,6 +22,13 @@ replaceExtractId = function(path, pattern, mapping, start, end) {
   			 end=end)
 }
 
+# Read raw TCGA data
+# path absolute or relative directory name
+# pattern file name pattern of the files to read in 
+# what vector giving the data types of the columns to read, will be passed on to "scan"
+# sampleType either tumor or normal; if "tumor", only samples with tissue types 1 through 9 will
+# be read; if "normal", only samples with tissue types 10 and 11 will be read
+# Returns a list with one entry per file. The sample barcode is used as element name
 readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
 	if (!require(stringr)) {
     stop("Could not load required package \"stringr\".")
@@ -51,6 +64,10 @@ readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
   read
 }
 
+# Create matrix from RNAseqV2 input
+# read the output of a call to "readRawData"
+# type either gene or isoform
+# Returns the expression matrix with genes/isoforms in rows and samples in columns
 exprsRNAseqV2 = function(read, type=c("gene", "isoform")) {
 	if (!require(stringr)) {
     stop("Could not load required package \"stringr\".")
@@ -79,6 +96,12 @@ exprsRNAseqV2 = function(read, type=c("gene", "isoform")) {
 	exprs
 }	
 
+# Create matrix from Illumina Infinium array input
+# read the output of a call to "readRawData"
+# Returns a list with two elements. 
+# The first element is a matrix with methylation beta values with 
+# probes in rows and samples in columns. The second element is an
+# annotation matrix with gene symbol, chromosome and position.
 infiniumMeth = function(read) {
 	# Create the methylation matrix
 	meth = matrix(NA, nrow=length(read[[1]]$genesym), ncol=length(read))
@@ -105,6 +128,9 @@ infiniumMeth = function(read) {
 	list(methylation.data=meth, methylation.probeann=meth.probeann)
 }
 
+# Create matrix from SNP6 copy number input
+# read the output of a call to "readRawData"
+# Returns the copy number segment matrix, each row represents one segment.
 snp6CNV = function(read) {
 	snp6 = data.frame()
 	for (i in 1:length(read)) {
