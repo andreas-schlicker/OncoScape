@@ -230,7 +230,7 @@ doMethylationAnalysis = function(tumors, normals, genes, exprs, probe.annotation
   
   # Get the correct comparison function
   # If we want to find genes down-regulated in tumors get the greaterThan function
-  # If we want to find genes up-regulated in tumors, get the lowerThan function
+  # If we want to find genes up-regulated in tumors, get the smallerThan function
   compare = switch(regulation, down=greaterThan, up=smallerThan)
   
   if (is.null(samples)) {
