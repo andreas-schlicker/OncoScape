@@ -159,5 +159,5 @@ summarizeAchilles = function(achil.scores, threshold, alternative=c("less", "gre
   # If we want to find genes with positive effect on cell line growth, get the smallerThan function
   compare = switch(alternative, greater=greaterThan, less=smallerThan)
   
-  sapply(achil.scores, function(x) { as.integer(compare(x, treshold)) })
+  sapply(achil.scores, function(x) { as.integer(compare(x, threshold)) })
 }
