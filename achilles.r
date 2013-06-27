@@ -138,9 +138,10 @@ doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=med
 		scores = lapply(genes, getPhenoValues, cls=cls)
 	}
 	
-	scores = lapply(scores, summarize)
+	scores = unlist(lapply(scores, summarize))
+	names(scores) = genes
 	
-	unlist(scores)
+	scores
 }
 
 ##' Summarizes the data from Project Achilles. Basically compares
