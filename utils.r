@@ -1,3 +1,27 @@
+# Tests whether the given gene is expressed in at least in the given percentage of samples
+# exprs.mat: expression matrix with genes in rows and samples in columns
+# gene: gene to test
+# exprs.threshold: threshold above which a gene is considered to be expressed; default: 0;
+# only sensible for log-ratio expression data
+# cutoff: percent samples that need to show expression for the gene to be considered expressed; 
+# default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
+# returns: TRUE/FALSE
+geneExpressed = function(exprs.mat, gene, exprs.threshold=0, cutoff=0.5) {
+	(sum(sapply(exprs.mat[gene, ], function(x) { x > exprs.threshold })) / ncol(exprs.mat)) >= cutoff
+}
+
+# Convenience function to test a number of genes whether they are expressed or not
+# exprs.mat: expression matrix with genes in rows and samples in columns
+# gene: gene to test
+# exprs.threshold: threshold above which a gene is considered to be expressed; default: 0;
+# only sensible for log-ratio expression data
+# cutoff: percent samples that need to show expression for the gene to be considered expressed; 
+# default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
+# returns: a boolean vector
+genesExpressed = function(exprs.mat, genes, exprs.threshold=0, cutoff=0.5) { 
+	sapply(genes, function(gene) { geneExpressed(exprs.mat, gene, exprs.threshold, cutoff) })
+}
+
 # Perform Wilcoxon tests on the given matrix.
 # If the matchedSamples argument is defined, a paired test is performed. In this
 # case, the first length(matchedSamples) number of columns need to contain group
