@@ -78,7 +78,7 @@ getGeneAvgRank = function(gene, relative=FALSE) {
 ##' @export 
 ##' @author Andreas Schlicker
 getCellLines = function(tissue) {
-	cls = rownames(subset(achilles.clann, Site_primary==tissue))
+	cls = rownames(subset(achilles.clann, Type==tissue))
 	if (length(cls) == 0) {
 		cls = rownames(achilles.clann)
 	}
@@ -92,7 +92,7 @@ getCellLines = function(tissue) {
 ##' @export
 ##' @author Andreas Schlicker
 getTissues = function() {
-	unique(achilles.clann[, "Site_primary"])
+	sort(unique(achilles.clann[, "Type"]))
 }
 
 ##' Loads the data for Project Achilles
@@ -109,13 +109,13 @@ loadAchillesData = function(directory) {
 
 ##' Runs the analysis using data from Project Achilles.
 ##' @param genes a character vector with gene symbols to look at
-##' @param score use the "rank", "avgrank" or the "phenotype" 
-##' scores of the genes for the analysis. "rank" refers to the
-##' absolute rank of the gene. "avgrank" refers to the mean rank the
-##' gene achieved across all cell lines in the analysis. "phenotype"
-##' refers to the phenotype score provided by Project Achilles. Smaller
-##' ranks and scores indicate higher survival dependence on the gene. 
-##' default: "rank"
+##' @param score use the "rank" or the "phenotype" scores of the 
+##' genes for the analysis. "rank" refers to the rank of the gene
+##' for each cell line. "phenotype" refers to the phenotype score 
+##' provided by Project Achilles. Smaller ranks and scores indicate 
+##' higher survival dependence on the gene. default: "rank"
+##' @param summarize function to summarize values for the different
+##' cell lines; default: median
 ##' @param tissue the tissue type of cell lines to include.
 ##' Use getTissues() to get a list of available tissue types.
 ##' If there are no cell lines for the given tissue, all cell lines
@@ -124,7 +124,7 @@ loadAchillesData = function(directory) {
 ##' be used for the analysis. Is ignored if score=="phenotype". default: TRUE
 ##' @export 
 ##' @author Andreas Schlicker
-doAchillesAnalysis = function(genes, score=c("rank", "avgrank", "phenotype"), tissue="all", relative=TRUE) {
+doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=median, tissue="all", relative=TRUE) {
 	# Make sure the score argument is valid
 	score = match.arg(score)
 	# Get the cell lines for the tissue
@@ -132,17 +132,11 @@ doAchillesAnalysis = function(genes, score=c("rank", "avgrank", "phenotype"), ti
 	
 	if (score == "rank") {
 		scores = lapply(genes, getGeneRanks, cls=cls, relative=relative)
-	} else if (score == "avgrank") {
-		cls = getCellLines(tissue)
-		if (length(cls) == ncol(achilles)) {
-			scores = lapply(genes, getGeneAvgRanks, relative=relative)
-		} else {
-			scores = lapply(genes, getGeneRanks, cls=cls, relative=relative)
-			scores = lapply(scores, mean)
-		}
 	} else if (score == "phenotype") {
 		scores = lapply(genes, getPhenoValues, cls=cls)
 	}
+	
+	scores = lapply(scores, summarize)
 	
 	unlist(scores)
 }
