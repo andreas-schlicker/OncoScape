@@ -115,7 +115,9 @@ loadAchillesData = function(directory) {
 ##' provided by Project Achilles. Smaller ranks and scores indicate 
 ##' higher survival dependence on the gene. default: "rank"
 ##' @param summarize function to summarize values for the different
-##' cell lines; default: median
+##' cell lines. In order to count the number values that are greater
+##' or less than a certain cutoff, gtCutoff(), gtCutoffPercent(), 
+##' ltCutoff() and ltCutoffPercent() can be used. default: median
 ##' @param tissue the tissue type of cell lines to include.
 ##' Use getTissues() to get a list of available tissue types.
 ##' If there are no cell lines for the given tissue, all cell lines
