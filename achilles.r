@@ -40,9 +40,9 @@ getPhenoValues = function(gene, cls) {
 ##' @author Andreas Schlicker
 getGeneRanks = function(gene, cls, relative=FALSE) {
 	if (relative) {
-		res = fetchValues(achilles.rank, gene, cls)
-	} else {
 		res = fetchValues(achilles.rank.rel, gene, cls)
+	} else {
+		res = fetchValues(achilles.rank, gene, cls)
 	}
 	
 	res
