@@ -79,7 +79,39 @@ dataTypeScore = function(mat) {
 greaterThan = function(x, y) { x > y }
 smallerThan = function(x, y) { x < y }
 
+##' Creates a helper function to count the elements greater
+##' than the given cutoff.
+##' @param cutoff cutoff value to apply
+##' @return the number of elements greater than the cutoff
+##' @export
+##' @author Andreas Schlicker
+gtCutoff = function(cutoff) { function(x) { sum(x > cutoff) } }
 
+##' Creates a helper function to find the percentage of elements
+##' that are greater than the given cutoff.
+##' @param cutoff cutoff value to apply
+##' @return the percentage of elements greater than the cutoff (ranging from
+##' 0 to 1.
+##' @export
+##' @author Andreas Schlicker
+gtCutoffPercent = function(cutoff) { function(x) { sum(x > cutoff) / length(x) } }
+
+##' Creates a helper function to count the elements less
+##' than the given cutoff.
+##' @param cutoff cutoff value to apply
+##' @return the number of elements less than the cutoff
+##' @export
+##' @author Andreas Schlicker
+ltCutoff = function(cutoff) { function(x) { sum(x < cutoff) } }
+
+##' Creates a helper function to find the percentage of elements
+##' that are less than the given cutoff.
+##' @param cutoff cutoff value to apply
+##' @return the percentage of elements less than the cutoff (ranging from
+##' 0 to 1.
+##' @export
+##' @author Andreas Schlicker
+ltCutoffPercent = function(cutoff) { function(x) { sum(x < cutoff) / length(x) } }
 
 ##DEPRECATED
 # Perform Wilcoxon tests on the given matrix.
