@@ -100,11 +100,11 @@ getTissues = function() {
 ##' @export 
 ##' @author Andreas Schlicker
 loadAchillesData = function(directory) {
-	load(paste(directory, "achilles_clann.rdata", sep="/")
-	load(paste(directory, "achilles_rank_avg.rdata", sep="/")
-	load(paste(directory, "achilles_rank.rdata", sep="/")
-	load(paste(directory, "achilles_rank_rel.rdata", sep="/")
-	load(paste(directory, "achilles.rdata", sep="/")
+	load(paste(directory, "achilles_clann.rdata", sep="/"))
+	load(paste(directory, "achilles_rank_avg.rdata", sep="/"))
+	load(paste(directory, "achilles_rank.rdata", sep="/"))
+	load(paste(directory, "achilles_rank_rel.rdata", sep="/"))
+	load(paste(directory, "achilles.rdata", sep="/"))
 }
 
 ##' Runs the analysis using data from Project Achilles.
