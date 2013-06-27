@@ -58,9 +58,9 @@ getGeneRanks = function(gene, cls, relative=FALSE) {
 ##' @export 
 ##' @author Andreas Schlicker
 getGeneAvgRank = function(gene, relative=FALSE) {
-	column = "avg.ranK"
+	column = "avg.rank"
 	if (relative) {
-		column = "avg.rank.rel"
+		column = "avg.rel.rank"
 	}
 	
 	res = NA
