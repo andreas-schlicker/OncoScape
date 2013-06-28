@@ -118,6 +118,7 @@ loadAchillesData = function(directory) {
 ##' cell lines. In order to count the number values that are greater
 ##' or less than a certain cutoff, gtCutoff(), gtCutoffPercent(), 
 ##' ltCutoff() and ltCutoffPercent() can be used. default: median
+##' @param 
 ##' @param tissue the tissue type of cell lines to include.
 ##' Use getTissues() to get a list of available tissue types.
 ##' If there are no cell lines for the given tissue, all cell lines
@@ -126,11 +127,14 @@ loadAchillesData = function(directory) {
 ##' be used for the analysis. Is ignored if score=="phenotype". default: TRUE
 ##' @export 
 ##' @author Andreas Schlicker
-doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=median, tissue="all", relative=TRUE) {
+doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=median, cls=NULL, tissue="all", relative=TRUE) {
 	# Make sure the score argument is valid
 	score = match.arg(score)
-	# Get the cell lines for the tissue
-	cls = getCellLines(tissue)
+	
+	if (is.null(cls) {
+		# Get the cell lines for the tissue
+		cls = getCellLines(tissue)
+	}
 	
 	if (score == "rank") {
 		scores = lapply(genes, getGeneRanks, cls=cls, relative=relative)
