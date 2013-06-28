@@ -131,7 +131,7 @@ doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=med
 	# Make sure the score argument is valid
 	score = match.arg(score)
 	
-	if (is.null(cls) {
+	if (is.null(cls)) {
 		# Get the cell lines for the tissue
 		cls = getCellLines(tissue)
 	}
