@@ -95,37 +95,3 @@ diffExpr = function(dgel, design) {
 	
 	topTags(lrt, n=nrow(lrt))[[1]]
 }
-
-rawdata <- read.delim("TableS1.txt", check.names=FALSE, stringsAsFactors=FALSE)
-# Create the DGEList object
-y <- DGEList(counts=rawdata[,4:9], genes=rawdata[,1:3])
-
-
-# Correct library size after gene selection
-y$samples$lib.size <- colSums(y$counts)
-# Set the rownames
-rownames(y$counts) <- rownames(y$genes) <- y$genes$EntrezGene
-y$genes$EntrezGene <- NULL
-# Calculate the normalization factor
-y <- calcNormFactors(y)
-# Check them out
-#y$samples
-
-# Build the design matrix
-Patient <- factor(c(8,8,33,33,51,51))
-Tissue <- factor(c("N","T","N","T","N","T"))
-data.frame(Sample=colnames(y),Patient,Tissue)
-design <- model.matrix(~Patient+Tissue)
-rownames(design) <- colnames(y)
-
-# Estimate the dispersion
-y <- estimateGLMCommonDisp(y, design, verbose=TRUE)
-# gene-wise dispersion values
-y <- estimateGLMTrendedDisp(y, design)
-y <- estimateGLMTagwiseDisp(y, design)
-
-# Differential experssion
-fit <- glmFit(y, design)
-
-# Get the data.frame with the results
-head(topTags(lrt, n=nrow(lrt))[[1]])
