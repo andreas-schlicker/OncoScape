@@ -6,8 +6,8 @@
 # end position after the last character of the extract ID in the file name
 replaceExtractId = function(path, pattern, mapping, start, end) {
 	if (!require(stringr)) {
-    stop("Could not load required package \"stringr\".")
-  }
+		stop("Could not load required package \"stringr\".")
+  	}
   
   lapply(list.files(path=path, pattern=pattern, full.names=TRUE),
   			 function(x, mapping, start, end) {
@@ -93,6 +93,34 @@ exprsRNAseqV2 = function(read, type=c("gene", "isoform")) {
 	rownames(exprs) = allGenes[indexes]
 	colnames(exprs) = names(read)
 
+	exprs
+}	
+
+# Create matrix from RNAseq input
+# read the output of a call to "readRawData"
+# type either gene or isoform
+# measure which gene expression measure to use (typically raw_counts, median_length_normalized, rpkm)
+# Returns the expression matrix with genes/isoforms in rows and samples in columns
+exprsRNAseq = function(read, measure) {
+	if (!require(stringr)) {
+		stop("Could not load required package \"stringr\".")
+	}
+	
+	# Get the gene symbol for each gene
+	# Column format = symbol|entrezid, e.g. A4GALT|53947
+	allGenes = sapply(read[[1]]$gene, function(x) { str_sub(x, start=1, end=str_locate(x, "\\|")[1,1]-1) } )
+		
+	indexes = which(allGenes != "?")
+	
+	# Create the matrix containing the expression values
+	exprs = matrix(0.0, nrow=length(allGenes[indexes]), ncol=length(read))
+	for (i in 1:length(read)) {
+		exprs[, i] = read[[i]][[measure]][indexes]
+	}
+	
+	rownames(exprs) = allGenes[indexes]
+	colnames(exprs) = names(read)
+	
 	exprs
 }	
 
