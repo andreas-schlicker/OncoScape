@@ -147,3 +147,28 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 			   p.value=wilcox.p,
 			   BH=p.adjust(wilcox.p, method="BH"))
 }
+
+##' Tests for differential expression between tumors and normals.
+##' @param genes character vector of gene symbols; must contain all gene symbols in exprs.res
+##' @param exprs.res data.frame with expression differences as returned by runExprComp()
+##' @param regulation either "down" or "up", whether down- or upregulation in tumors
+##' should be scored
+##' @param wilcox.cutoff FDR threshold below which a difference is considered to be
+##' significant
+##' @return names list with the results
+##' @author Andreas Schlicker
+doExprAnalysis = function(genes, exprs.res, regulation=c("down", "up"), wilcox.cutoff=0.05) {
+	regulation = match.arg(regulation)
+	
+	# Get the correct comparison function
+	# If we want to find genes with greater expression in tumors get the greaterThan function
+	# If we want to find genes with lower expression in tumors, get the smallerThan function
+	compare = switch(regulation, down=smallerThan, up=greaterThan)
+	
+	gene.scores = rep(0, length(genes))
+	names(gene.scores) = genes
+	hits = apply(exprs.res, 1, function(x) { x["BH"] < wilcox.cutoff & compare(x["tumor.exprs"], x["normal.exprs"]) })
+	gene.scores[names(hits)[hits]] = 1
+	
+	gene.scores
+}
