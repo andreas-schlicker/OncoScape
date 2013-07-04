@@ -95,3 +95,55 @@ diffExpr = function(dgel, design) {
 	
 	topTags(lrt, n=nrow(lrt))[[1]]
 }
+
+##' Compares expression data of tumor and normal samples.
+##' The function will run (un-)paired Wilcoxon tests. Pairing of samples
+##' is determined by matching sample names in the tumors and normals matrices.
+##' The function uses doWilcox() as defined for the analysis of methylation data!
+##' @param tumors expression matrix with samples in the columns and genes in the rows
+##' @param normals expression matrix with samples in the columns and genes in the rows
+##' @param paired boolean, whether paired or unpaired test is to be performed
+##' @return names character vector with results from tests
+##' @author Andreas Schlicker
+runExprComp = function(tumors, normals, paired=TRUE) {
+	if (!is.matrix(tumors)) {
+		tumors = matrixFromVector(tumors)
+	}
+	
+	if (!is.matrix(normals)) {
+		normals = matrixFromVector(normals)
+	}
+	
+	if (paired) {
+		# Samples from tumors that have a matched normal
+		matchedsamples = intersect(colnames(tumors), colnames(normals))
+		tumors = tumors[, matchedsamples]
+		normals = normals[, matchedsamples]
+	}
+	
+	if (!is.matrix(tumors)) {
+		tumors = matrixFromVector(tumors)
+	}
+	
+	if (!is.matrix(normals)) {
+		normals = matrixFromVector(normals)
+	}
+	
+	# Rename normal samples to reflect the state
+	colnames(normals) = paste(colnames(normals), "normal", sep="_")
+	
+	sample.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
+	names(sample.groups) = c(colnames(tumors), colnames(normals))
+	
+	# Run Wilcoxon tests
+	if (paired) {
+		wilcox.p = doWilcox(cbind(tumors, normals), matchedSamples=matchedsamples)
+	} else {
+		wilcox.p = doWilcox(cbind(tumors, normals), groups=sample.groups)
+	}
+	
+	data.frame(tumor.exprs=apply(tumors, 1, mean, na.rm=TRUE),
+			   normal.exprs=apply(normals, 1, mean, na.rm=TRUE),
+			   p.value=wilcox.p,
+			   BH=p.adjust(wilcox.p, method="BH"))
+}
