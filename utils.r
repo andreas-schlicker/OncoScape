@@ -113,117 +113,55 @@ ltCutoff = function(cutoff) { function(x) { sum(x < cutoff) } }
 ##' @author Andreas Schlicker
 ltCutoffPercent = function(cutoff) { function(x) { sum(x < cutoff) / length(x) } }
 
-##DEPRECATED
-# Perform Wilcoxon tests on the given matrix.
-# If the matchedSamples argument is defined, a paired test is performed. In this
-# case, the first length(matchedSamples) number of columns need to contain group
-# 1 and then all matched samples in group 2 should be given. Samples in groups 1
-# and 2 need to be in matched order.
-# If a non-paired test is to be performed, groups should be a named vector of
-# 1 and 2 indicating which samples belong to group 1 and 2, respectively.
-# olddoWilcox = function(inpMat, matchedSamples=NULL, groups=NULL) {
-#   # Paired Wilcoxon test?
-#   paired = !is.null(matchedSamples)
-#  
-#   # p-values from tests
-#   wilcox.p = rep(-1, times=nrow(inpMat))
-#   if (!is.null(rownames(inpMat)))
-#     names(wilcox.p) = rownames(inpMat)
-#  
-#   # Run paired Wilcoxon tests
-#   if (paired) {
-#     lms = length(matchedSamples)
-#     ncolMat = ncol(inpMat)
-#     for (i in 1:nrow(inpMat)) {
-#       wilcox.p[i] = tryCatch(wilcox.test(x=inpMat[i, 1:lms], y=inpMat[i, (lms+1):ncolMat], paired=TRUE)$p.value, error = function(e) NA)
-#     }
-#   } else {
-#     group1 = names(groups[groups == 1])
-#     group2 = names(groups[groups == 2])
-#     for (i in 1:nrow(inpMat)) {
-#       wilcox.p[i] = tryCatch(wilcox.test(x=inpMat[i, group1], y=inpMat[i, group2], paired=FALSE)$p.value, error = function(e) NA)
-#     }
-#   }
-#   return(wilcox.p)
-# }
+##' Convert a vector into a matrix with one row.
+##' Names of the vector are preserved as colnames.
+##' @param vec input vector
+##' @return the new matrix
+##' @author Andreas Schlicker
+matrixFromVector = function(vec) {
+	tmp = matrix(vec, nrow=1)
+	colnames(tmp) = names(vec)
+	tmp
+}
 
-##DEPRECATED
-# Calculate prioritization score by scoring each single dataset
-# x should be a matrix with 10 columns
-# categoryScore = function(x) {
-#   # Final score
-#   res = 0
-#   # At least one Illumina 27 is higher methylated in tumors than normals
-#   # (significant in paired test) and negatively correlated with expression
-#   if (!is.na(x[1]) && x[1] > 0) {
-#     res = res + 1
-#   }
-#   # At least one Illumina 27 is higher methylated in tumors than normals
-#   # (significant in unpaired test) and negatively correlated with expression
-#   if (!is.na(x[2]) && x[2] > 0) {
-#     res = res + 1
-#   }
-#   # At least one Illumina 450 is higher methylated in tumors than normals
-#   # (significant in paired test) and negatively correlated with expression
-#   if (!is.na(x[3]) && x[3] > 0) {
-#     res = res + 1
-#   }
-#   # At least one Illumina 450 is higher methylated in tumors than normals
-#   # (significant in unpaired test) and negatively correlated with expression
-#   if (!is.na(x[4]) && x[4] > 0) {
-#     res = res + 1
-#   }
-#   # Copy number is significantly lower in tumors than in paired normals
-#   if (!is.na(x[5]) && x[5] < 0) {
-#     res = res + 1
-#   }
-#   # Gene is significantly associated with poorer disease free survival and
-#   # higher expression -> shorter survival
-#   if (!is.na(x[7]) && x[7] < 0.05 && !is.na(x[8]) && x[8] < 0) {
-#     res = res + 1
-#   }
-#   # Gene is significantly associated with poorer disease specific survival and
-#   # higher expression -> shorter survival
-#   if (!is.na(x[9]) && x[9] < 0.05 && !is.na(x[10]) && x[10] < 0) {
-#     res = res + 1
-#   }
-#   return(res)
-# }
+##' Generates a boxplot from the given data.
+##' @param group1 values for sample group1
+##' @param group2 values for sample group2
+##' @param group1.lab label for group1
+##' @param group2.lab label for group2
+##' @param xlabel x-axis label 
+##' @param ylabel y-axis label
+##' @param main main header for the plot
+##' @param pvalue pvalue that will be added to the plot as text
+boxplot = function(group1, group2, group1.lab, group2.lab, xlabel, ylabel, main, pvalue) {
+	if (!require(ggplot2)) {
+		stop("Can't load required package \"ggplot2\"!")
+	}
+	
+	temp = data.frame(values=c(group1, group2), 
+					  group=c(rep(group1.lab, times=length(group1)),
+							  rep(group2.lab, times=length(group2))))
+	
+    cbbPalette = c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+	
+	ggplot(temp, aes(x=group, y=values, fill=group)) +
+	geom_boxplot(outlier.size=0, aes(alpha=0.3)) +
+	geom_jitter(size=3) +
+	guides(fill=FALSE, alpha=FALSE) +
+	scale_colour_manual(values=cbbPalette) +
+	geom_text(data=NULL, x=1, y=max(temp$values), label=paste("p = ", pvalue, sep="")) +
+	xlab(xlabel) +
+	ylab(ylabel) +
+	ggtitle(main) + 
+	theme(plot.title=element_text(face='bold', size=16),
+		  panel.background = element_rect(fill='grey95', colour="grey95"),
+		  axis.text.x=element_text(face='bold', size=16),
+		  axis.title.x=element_text(face='bold', size=16),
+		  axis.text.y=element_text(face='bold', size=16),
+		  axis.title.y=element_text(face='bold', size=16),
+		  legend.text=element_text(face="bold", size=16),
+	      legend.title=element_text(face="bold", size=16),
+		  strip.text.x = element_text(face="bold", size=16),
+		  strip.text.y = element_text(face="bold", size=16))
+}
 
-# # Calculate prioritization score by scoring each data type
-# # x should be a matrix with 10 columns
-# # sig.cutoff is the significance cut-off used
-# # direction either "down" or "up" for scoring evidence for the respective direction
-# # of regulation in tumors 
-# dataTypeScore = function(x, sig.cutoff=0.05, direction=c("down", "up")) {
-#   direction = match.arg(direction)
-#  
-#   # Get the correct comparison function
-#   # If we want to find genes down-regulated in tumor, get the greaterThan function
-#   # If we want to find genes up-regulated in tumor, get the smallerThan function
-#   compare = switch(direction, down=smallerThan, up=greaterThan)
-#   
-#   # Final score
-#   res = 0
-#   # At least one Illumina 27 probe is higher methylated in tumors than normals, 
-#   # significant in paired or unpaired test and negatively correlated with expression   
-#   # At least one Illumina 450 probe is higher methylated in tumors than normals, 
-#   # significant in paired or unpaired test and negatively correlated with expression
-#   if ((!is.na(x[1]) && x[1] > 0) || (!is.na(x[2]) && x[2] > 0) ||
-#       (!is.na(x[3]) && x[3] > 0) || (!is.na(x[4]) && x[4] > 0)) {
-#     res = res + 1
-#   }
-#   # Copy number is significantly lower in tumors than in paired normals
-#   if (!is.na(x[7]) && x[7] == 1) {
-#     res = res + 1
-#   }
-#   # Gene is significantly associated with shorter disease free or disease specific 
-#   # survival and lower expression -> shorter survival
-#   # Negative coefficients indicate lower expression is associated with shorter survival
-#   # Positive coefficients indicate higher expression is associated with shorter survival
-#   if ((!is.na(x[8]) && compare(x[8], 0) && !is.na(x[9]) && x[9] < sig.cutoff) || 
-#       (!is.na(x[10]) && compare(x[10], 0) && !is.na(x[11]) && x[11] < sig.cutoff)) {
-#     res = res + 1
-#   }
-#   return(res)
-# }
