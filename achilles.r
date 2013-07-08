@@ -108,6 +108,9 @@ loadAchillesData = function(directory) {
 }
 
 ##' Runs the analysis using data from Project Achilles.
+##' The function either gets all the ranks or phenotypes for the 
+##' selected cell lines. Then uses the function in the summarize 
+##' argument to calculate one final value for each gene. 
 ##' @param genes a character vector with gene symbols to look at
 ##' @param score use the "rank" or the "phenotype" scores of the 
 ##' genes for the analysis. "rank" refers to the rank of the gene
@@ -118,13 +121,16 @@ loadAchillesData = function(directory) {
 ##' cell lines. In order to count the number values that are greater
 ##' or less than a certain cutoff, gtCutoff(), gtCutoffPercent(), 
 ##' ltCutoff() and ltCutoffPercent() can be used. default: median
-##' @param 
+##' @param cls character vector with cell line names that should be
+##' included in the analysis. If null, use cell lines defined by the
+##' "tissue" argument. 
 ##' @param tissue the tissue type of cell lines to include.
 ##' Use getTissues() to get a list of available tissue types.
 ##' If there are no cell lines for the given tissue, all cell lines
 ##' will be included in the analysis. default: "all"
 ##' @param relative boolean; indicates whether relative ranks should
 ##' be used for the analysis. Is ignored if score=="phenotype". default: TRUE
+##' @return vector with the scores for each gene
 ##' @export 
 ##' @author Andreas Schlicker
 doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=median, cls=NULL, tissue="all", relative=TRUE) {
