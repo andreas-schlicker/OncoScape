@@ -66,6 +66,10 @@ barplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main=NULL
 		stop("Can't load required package \"ggplot2\"!")
 	}
 	
+	if (!require(stringr)) {
+		stop("Can't load required package \"stringr\"!")
+	}
+	
 	plotting.df = data.frame(phenoscore=scores, 
 							 cls=sapply(names(scores), function(x) { str_sub(x, start=1, end=str_locate(x, "_")[1, 1]-1) }))
 	
