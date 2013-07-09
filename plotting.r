@@ -156,6 +156,8 @@ scatterplot = function(meth.group1, meth.group2,
 ##' Creates all plots for one gene.
 ##' @param gene gene symbol
 ##' @param prior.details data.frame with detailed scores from the prioritization
+##' @param samples optional character vector giving sample names to be used for
+##' plotting
 ##' @param exprs.group1 expression matrix for group 1
 ##' @param exprs.group2 expression matrix for group 2
 ##' @param meth.group1 methylation matrix for group 1
@@ -171,7 +173,7 @@ scatterplot = function(meth.group1, meth.group2,
 ##' @param color.palette colors to use for plotting
 ##' @return the combined plots
 ##' @author Andreas Schlicker
-plotGene = function(gene, prior.details,
+plotGene = function(gene, prior.details, samples=NULL, 
 				 	exprs.group1, exprs.group2, 
 		 			meth.group1, meth.group2, meth.anno, 
 					acgh.group1, acgh.group2, 
@@ -180,14 +182,24 @@ plotGene = function(gene, prior.details,
 					color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) {
 
 	# Gene expression plot
-	ge.box = boxplot(exprs.group1[gene, intersect(colnames(exprs.group1), colnames(exprs.group2))], 
-					 exprs.group2[gene, intersect(colnames(exprs.group1), colnames(exprs.group2))], 
+	samp1 = colnames(exprs.group1)
+	if (!is.null(samples)) {
+		samp1 = intersect(samples, colnames(exprs.group1))
+	}
+	ge.box = boxplot(exprs.group1[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
+					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
 					 color.palette=color.palette)
-			 
+	
 	# Copy number plot
-	cn.box = boxplot(acgh.group1[gene, ], acgh.group2[gene, ], 
+	samp1 = colnames(acgh.group1)
+	samp2 = colnames(acgh.group2)
+	if (!is.null(samples)) {
+		samp1 = intersect(samples, colnames(acgh.group1))
+		samp2 = intersect(samples, colnames(acgh.group2))
+	}
+	cn.box = boxplot(acgh.group1[gene, samp1], acgh.group2[gene, samp2], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "copy number"), main=NULL, pvalue=prior.details[gene, "cgh.bh"],
 					 color.palette)
@@ -196,8 +208,14 @@ plotGene = function(gene, prior.details,
 	achil = barplot(achilles, achilles.ut, achilles.lt, main=NULL)
 	
 	# Methylation plot
+	samp1 = colnames(meth.group1)
+	samp2 = colnames(meth.group2)
+	if (!is.null(samples)) {
+		samp1 = intersect(samples, colnames(meth.group1))
+		samp2 = intersect(samples, colnames(meth.group2))
+	}
 	meth.probes = rownames(meth.anno[which(meth.anno[, "genesym"] == gene), ])
-	meth = scatterplot(meth.group1[meth.probes, ], meth.group2[meth.probes, ], 
+	meth = scatterplot(meth.group1[meth.probes, samp1], meth.group2[meth.probes, samp2], 
 					   error.bar="se", lab.group1=lab.group1, lab.group2=lab.group2, main=NULL,
 					   color.palette=color.palette)
 			   
