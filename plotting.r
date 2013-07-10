@@ -201,7 +201,7 @@ plotGene = function(gene, prior.details, samples=NULL,
 		samp1 = intersect(samples, colnames(acgh.group1))
 		samp2 = intersect(samples, colnames(acgh.group2))
 	}
-	if (length(intersect(colnames(tsgs.prioritize.details), "cgh.bh")) == 1) {
+	if (length(intersect(colnames(prior.details), "cgh.bh")) == 1) {
 		pvalue = prior.details[gene, "cgh.bh"]
 	} else { 
 		pvalue = NA
