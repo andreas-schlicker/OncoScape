@@ -206,7 +206,6 @@ plotGene = function(gene, prior.details, samples=NULL,
 	} else { 
 		pvalue = NA
 	}
-	pvalue = prior.details
 	cn.box = boxplot(acgh.group1[gene, samp1], acgh.group2[gene, samp2], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "copy number"), main=NULL, pvalue=pvalue,
