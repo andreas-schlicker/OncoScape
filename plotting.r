@@ -201,9 +201,15 @@ plotGene = function(gene, prior.details, samples=NULL,
 		samp1 = intersect(samples, colnames(acgh.group1))
 		samp2 = intersect(samples, colnames(acgh.group2))
 	}
+	if (length(intersect(colnames(tsgs.prioritize.details), "cgh.bh")) == 1) {
+		pvalue = prior.details[gene, "cgh.bh"]
+	} else { 
+		pvalue = NA
+	}
+	pvalue = prior.details
 	cn.box = boxplot(acgh.group1[gene, samp1], acgh.group2[gene, samp2], 
 					 lab.group1, lab.group2, 
-					 xlabel=NULL, ylabel=paste(gene, "copy number"), main=NULL, pvalue=prior.details[gene, "cgh.bh"],
+					 xlabel=NULL, ylabel=paste(gene, "copy number"), main=NULL, pvalue=pvalue,
 					 color.palette)
 			 
 	# Achilles plot
