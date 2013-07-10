@@ -28,11 +28,11 @@ boxplot = function(group1, group2,
 					rep(lab.group2, times=length(group2))))
 	
 	p = ggplot(temp, aes(x=group, y=values, fill=group)) +
-			geom_boxplot(outlier.size=0, aes(alpha=0.3)) +
-			geom_jitter(size=3) +
-			guides(fill=FALSE, alpha=FALSE) +
-			scale_colour_manual(values=color.palette) +
-			generateTheme()
+		geom_boxplot(outlier.size=0, aes(alpha=0.3)) +
+		geom_jitter(size=3) +
+		guides(fill=FALSE, alpha=FALSE) +
+		scale_fill_manual(values=color.palette) +
+		generateTheme()
 	
 	if (!is.null(xlabel)) {
 		p = p + xlab(xlabel)
