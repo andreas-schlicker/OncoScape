@@ -17,7 +17,7 @@
 ##' @author Andreas Schlicker
 boxplot = function(group1, group2, 
 				   lab.group1="group1", lab.group2="group2", 
-				   xlabel=NULL, ylabel=NULL, main=NULL, pvalue=NULL,
+				   xlabel="", ylabel="", main=NULL, pvalue=NULL,
 				   color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) {
 	if (!require(ggplot2)) {
 		stop("Can't load required package \"ggplot2\"!")
@@ -32,14 +32,11 @@ boxplot = function(group1, group2,
 		geom_jitter(size=3) +
 		guides(fill=FALSE, alpha=FALSE) +
 		scale_fill_manual(values=color.palette) +
+		geom_hline(yintercept=0, linetype=1) +
+		xlab(xlabel) + 
+		ylab(ylabel) + 
 		generateTheme()
 	
-	if (!is.null(xlabel)) {
-		p = p + xlab(xlabel)
-	}
-	if (!is.null(ylabel)) {
-		p = p + ylab(ylabel)
-	}
 	if (!is.null(main)) {
 		p = p + ggtitle(main)
 	}
@@ -186,11 +183,16 @@ plotGene = function(gene, prior.details, samples=NULL,
 	if (!is.null(samples)) {
 		samp1 = intersect(samples, colnames(exprs.group1))
 	}
-	ge.box = boxplot(exprs.group1[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
-					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
-					 lab.group1, lab.group2, 
-					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
-					 color.palette=color.palette)
+#	ge.box = boxplot(exprs.group1[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
+#					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
+#					 lab.group1, lab.group2, 
+#					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
+#					 color.palette=color.palette)
+	ge.box = boxplot(exprs.group1[gene, intersect(samp1, colnames(exprs.group1))], 
+			exprs.group2[gene, intersect(samp1, colnames(exprs.group2))], 
+			lab.group1, lab.group2, 
+			xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
+			color.palette=color.palette)
 	
 	# Copy number plot
 	samp1 = colnames(acgh.group1)
