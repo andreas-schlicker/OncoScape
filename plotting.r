@@ -45,7 +45,7 @@ boxplot = function(group1, group2,
 		if (max(subset(temp, group==lab.group2)$values, na.rm=TRUE) > max(subset(temp, group==lab.group1)$values, na.rm=TRUE)) {
 			xpos = 2
 		}
-		p = p + geom_text(x=xpos, y=max(temp$values, na.rm=TRUE), label=paste("FDR = ", signif(pvalue, digits=2), sep=""))
+		p = p + geom_text(x=xpos, y=max(temp$values, na.rm=TRUE), label=paste("FDR = ", signif(pvalue, digits=2), sep=""), size=8, fontface="bold")
 	}
 	
 	p
@@ -76,7 +76,8 @@ barplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main=NULL
 		xlab("Cell lines") +
 		ylab("Achilles phenotype score") +
 		guides(fill=FALSE) +
-		generateTheme()
+		generateTheme() + 
+		theme(axis.text.x=element_text(face='bold', size=25, angle=45, vjust=0.5))
 
 	if (!is.null(main)) {
 		p = p + ggtitle(main)
@@ -135,7 +136,7 @@ scatterplot = function(meth.group1, meth.group2,
 		xlab("Methylation probes") +
 		ylab("Average beta value") + 
 		generateTheme() + 
-		theme(axis.text.x=element_text(face='bold', size=16, angle=90))
+		theme(axis.text.x=element_text(face='bold', size=25, angle=90))
 	
 	if (error.bar == "se") {
 		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-se, ymax=beta+se), width=0.2, position=pd)
@@ -233,16 +234,16 @@ plotGene = function(gene, prior.details, samples=NULL,
 ##' @return the theme
 ##' @author Andreas Schlicker
 generateTheme = function() {
-	theme(plot.title=element_text(face='bold', size=16),
+	theme(plot.title=element_text(face='bold', size=25),
 			panel.background = element_rect(fill='grey95', colour="grey95"),
-			axis.text.x=element_text(face='bold', size=16),
-			axis.title.x=element_text(face='bold', size=16),
-			axis.text.y=element_text(face='bold', size=16),
-			axis.title.y=element_text(face='bold', size=16),
-			legend.text=element_text(face="bold", size=16),
-			legend.title=element_text(face="bold", size=16),
-			strip.text.x = element_text(face="bold", size=16),
-			strip.text.y = element_text(face="bold", size=16))
+			axis.text.x=element_text(face='bold', size=25),
+			axis.title.x=element_text(face='bold', size=25),
+			axis.text.y=element_text(face='bold', size=25),
+			axis.title.y=element_text(face='bold', size=25),
+			legend.text=element_text(face="bold", size=25),
+			legend.title=element_text(face="bold", size=25),
+			strip.text.x = element_text(face="bold", size=25),
+			strip.text.y = element_text(face="bold", size=25))
 }
 
 ## Taken from: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_%28ggplot2%29/
