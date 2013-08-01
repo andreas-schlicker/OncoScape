@@ -156,6 +156,28 @@ infiniumMeth = function(read) {
 	list(methylation.data=meth, methylation.probeann=meth.probeann)
 }
 
+# Create matrix from RNAseqV2 input
+# read the output of a call to "readRawData"
+# Returns the expression matrix with genes/isoforms in rows and samples in columns
+miRNAseq = function(read) {
+	indexes = seq(1, length(read[[1]]$miRNA_ID), by=2)
+	
+	# Get the symbol for each miRNA
+	allGenes = read[[1]]$miRNA_ID[indexes]
+	
+	# Create the matrix containing the expression values
+	exprs = matrix(NA, nrow=length(allGenes), ncol=length(read))
+	for (i in 1:length(read)) {
+		exprs[, i] = read[[i]]$rpkm[indexes][match(read[[i]]$miRNA_ID[indexes], allGenes)]
+	}
+	
+	rownames(exprs) = allGenes
+	colnames(exprs) = names(read)
+	
+	exprs
+}	
+
+
 # Create matrix from SNP6 copy number input
 # read the output of a call to "readRawData"
 # Returns the copy number segment matrix, each row represents one segment.
