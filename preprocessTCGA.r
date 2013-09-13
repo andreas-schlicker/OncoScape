@@ -13,9 +13,9 @@ replaceExtractId = function(path, pattern, mapping, start, end) {
   			 function(x, mapping, start, end) {
   			 	 extract = str_sub(x, start=start, end=end)
   			 	 file.rename(from=x, 
-  			 	 						 to=str_replace(x,
-  			 	 						 								pattern=extract, 
-  			 	 						 								replacement=mapping[extract, 1]))
+  			 	 			 to=str_replace(x,
+  			 	 			 pattern=extract, 
+  			 	 			 replacement=mapping[extract, 1]))
   			 },
   			 mapping=mapping,
   			 start=start,
