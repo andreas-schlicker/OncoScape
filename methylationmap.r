@@ -82,17 +82,20 @@ corMethExprs = function(meth.data, meth.ann, exprs.data, meth.probes) {
   exprs.genes = rownames(exprs.data)
   commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
 	
-  cors = c()
-  n = c()
-  for (x in meth.probes) {
-    if (meth.ann[x, 1] %in% exprs.genes) {
-     cors = c(cors, cor(exprs.data[meth.ann[x, 1], commonSamples], meth.data[x, commonSamples], method="spearman"))
-     n = c(n, x)
+  cors = numeric(nrow(meth.probes))
+  n = character(nrow(meth.probes))
+  for (i in 1:length(meth.probes)) {
+    if (meth.ann[meth.probes[i], 1] %in% exprs.genes) {
+      cors[i] = cor(exprs.data[meth.ann[meth.probes[i], 1], commonSamples], 
+			  		meth.data[meth.probes[i], commonSamples], 
+					method="spearman")
+      n[i] = meth.probes[i]
     }
   }
-  names(cors) = n
+  cors = cors[1:i]
+  names(cors) = n[1:i]
   
-  return(cors)
+  cors
 }
 
 # Calculates correlation between methylation probes and expression of the corresponding genes.
@@ -113,29 +116,84 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 	commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
 	samps = commonSamples
 	
-	cors = c()
-	n = c()
+#	cors = c()
+#	n = c()
+#	for (x in meth.probes) {
+#		if (filt == "low") {
+#			samps = colnames(meth.data)[which(meth.data[x, commonSamples] < 0.3)]
+#		} else if (filt == "high") {
+#			samps = colnames(meth.data)[which(meth.data[x, commonSamples] > 0.7)]
+#		}
+#		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 2], ";"))
+#		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 3], ";"))
+#		genes_regions = unique(paste(genes, regions, sep="_"))
+#		
+#		for (gene_region in genes_regions) {
+#			gs = strsplit(gene_region, "_")
+#			if (gs[[1]][1] %in% exprs.genes) {
+#				cors = c(cors, cor(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman"))
+#				n = c(n, paste(x, gene_region, sep="_"))
+#			}
+#		}
+#	}
+#	names(cors) = n
+	
+	# Correlations
+	cors = list()
+	# Names of correlations
+	n = list()
+	# Length of temporary vectors
+	LENGTH = 1000
+	# Temporary vectors
+	temp1 = numeric(LENGTH)
+	temp2 = character(LENGTH)
+	# Counter for current element in temporary vector
+	i = 1
+	# Counter of temporary vectors
+	j = 1
+	
 	for (x in meth.probes) {
+		# No space left in temporary vectors
+		# Save the vectors in the lists
+		if (i > LENGTH) {
+			cors[[j]] = temp1
+			temp1 = numeric(LENGTH)
+			n[[j]] = temp2
+			temp2 = character(LENGTH)
+			j = j + 1
+			i = 1
+		}
+		
+		# Potentially filter samples
 		if (filt == "low") {
 			samps = colnames(meth.data)[which(meth.data[x, commonSamples] < 0.3)]
 		} else if (filt == "high") {
 			samps = colnames(meth.data)[which(meth.data[x, commonSamples] > 0.7)]
 		}
+		# Get all genes and gene regions and combine them
 		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 2], ";"))
 		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 3], ";"))
 		genes_regions = unique(paste(genes, regions, sep="_"))
 		
+		# Cycle through all gene-region combinations
 		for (gene_region in genes_regions) {
 			gs = strsplit(gene_region, "_")
+			# If there is expression data, save the data in the temporary vectors
 			if (gs[[1]][1] %in% exprs.genes) {
-				cors = c(cors, cor(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman"))
-				n = c(n, paste(x, gene_region, sep="_"))
+				temp1[i] = cor(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman")
+				temp2[i] = paste(x, gene_region, sep="_")
+				i = i + 1
 			}
 		}
 	}
-	names(cors) = n
+	# Save the last values
+	cors[[j]] = temp1[1:i]
+	n[[j]] = temp2[1:i]
+	# And build the return value
+	cors = unlist(cors)
+	names(cors) = unlist(n)
 	
-	return(cors)
+	cors
 }
 
 # Calculates the ratio of probes per gene that are significantly negatively associated with expression and all probes for that gene.
@@ -225,7 +283,18 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
   return(gene.scores)
 }
 
-doMethylationAnalysis = function(tumors, normals, genes, exprs, probe.annotation, samples=NULL, wilcox.cutoff=0.05, diff.cutoff=0.1, regulation=c("down", "up"), cor.min=0.1, cor.max=1.0) {
+doMethylationAnalysis = function(tumors, 
+								normals, 
+								genes, 
+								exprs, 
+								probe.annotation, 
+								samples=NULL, 
+								wilcox.cutoff=0.05, 
+								diff.cutoff=0.1, 
+								regulation=c("down", "up"), 
+								cor.min=0.1, 
+								cor.max=1.0) {
+							
   regulation = match.arg(regulation)
   
   # Get the correct comparison function
