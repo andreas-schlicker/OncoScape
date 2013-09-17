@@ -104,7 +104,7 @@ corMethExprs = function(meth.data, meth.ann, exprs.data, meth.probes) {
 # Correlation is calculated using all samples contained in both data matrices
 # meth.data should be a matrix with probes in rows and samples in columns
 # meth.ann has to be an annotation matrix mapping probes to genes;
-# probe ids in 1st column, gene ids in 2nd;
+# probe ids in 1st column, gene ids in 2nd and gene regions in 3rd;
 # gene ids have to match ids used in the expression data.
 # exprs.data should be a matrix with probes in rows and samples in columns
 # meth.probes should be a character vector giving the probes to test
@@ -258,22 +258,7 @@ summarizeMethExprs = function(meth.wilcox, meth.diff, cors, meth.ann, genes, wil
 summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleast", "absolute")) {
   score = match.arg(score)
   score = switch(score, atleast=TRUE, absolute=FALSE)
-	
-  # gene.scores = rep(0, length(genes))
-  # names(gene.scores) = genes
-  # 
-  # nocol = ncol(methylation)
-  # 
-  # for (gene in genes) {
-  #   score = 0
-  #   for (i in nocol) {
-  #     if (!is.na(methylation[gene, i]) && methylation[gene, i] > 0) {
-  #       score = 1
-  #     }
-  #   }
-  #   genes.score[gene] = score
-  # }
-  
+
   # How many comparisons per gene exceed the threshold? 
   gene.scores = apply(methylation, 1, function(x) { length(which(x > threshold)) })	
   # Is there at least one comparison exceeding the threshold?
@@ -293,7 +278,8 @@ doMethylationAnalysis = function(tumors,
 								diff.cutoff=0.1, 
 								regulation=c("down", "up"), 
 								cor.min=0.1, 
-								cor.max=1.0) {
+								cor.max=1.0,
+								gene.region=FALSE) {
 							
   regulation = match.arg(regulation)
   
@@ -323,8 +309,21 @@ doMethylationAnalysis = function(tumors,
     temp = matrix(tumors[selected.probes, tumor.samples], nrow=length(selected.probes), byrow=TRUE)
     rownames(temp) = selected.probes
     colnames(temp) = tumor.samples
-    cors = corMethExprs(temp, probe.annotation, exprs, selected.probes)
-    selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
+	# gene.region determines whether gene region information is available for the
+	# methylation probes. If so, body probes are treated differently from other probes.
+	if (!gene.region) {
+    	cors = corMethExprs(temp, probe.annotation, exprs, selected.probes)
+    	selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
+    } else {
+		cors = corMethExprsMult(temp, probe.annotation, exprs, selected.probes)
+		# The correlation names have the form <meth.probe_gene_gene.region>
+		# Split everything up into matrix form:
+		# meth.probe, gene, gene.region, correlation
+		cors = cbind(do.call("rbind", strsplit(names(cors), "_")), cors)
+		colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val")
+		selected.probes = c(subset(cors, gene.region != "Body" & cor.val <= cor.max & cor.val >= cor.min)[, "meth.probe"],
+				subset(cors, gene.region == "Body" & cor.val <= (-1*cor.min) & cor.val >= (-1*cor.max))[, "meth.probe"])
+	}
   }
   
   wilcox = list(unpaired=c(), paired=c())
