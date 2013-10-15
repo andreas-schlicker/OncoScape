@@ -118,7 +118,7 @@ loadAchillesData = function(directory) {
 ##' provided by Project Achilles. Smaller ranks and scores indicate 
 ##' higher survival dependence on the gene. default: "rank"
 ##' @param summarize function to summarize values for the different
-##' cell lines. In order to count the number values that are greater
+##' cell lines. In order to count the number of values that are greater
 ##' or less than a certain cutoff, gtCutoff(), gtCutoffPercent(), 
 ##' ltCutoff() and ltCutoffPercent() can be used. default: median
 ##' @param cls character vector with cell line names that should be
