@@ -245,6 +245,34 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
   return(gene.scores)
 }
 
+##' Performs all steps of the methylation analysis. First, probes that don't meet the
+##' "diff.cutoff" are filtered out. Second, probes without significant correlation
+##' with gene expression are filtered out. Third, probes without significant difference
+##' in methylation are filtered out. 
+##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
+##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
+##' @param genes vector with gene symbols 
+##' @param exprs gene expression matrix with genes in rows and samples in columns
+##' @param probe.annotation methylation probe annotation matrix. The first column has to be the 
+##' probe id, "gene" column giving gene IDs (possibily separated by ";"), "gene_region" column
+##' giving name of gene region for every gene (possibily separated by ";"), "chrom" and
+##' "pos" giving the position.
+##' @param samples vector with samples to include in the analysis, if == NULL, all samples are used; default: NULL
+##' @param wilcox.cutoff significance cut-off for Wilcoxon test; this cut-off is applied to Benjamini-Hochberg-
+##' corrected p-values; default: 0.05
+##' @param diff.cutoff minimum methylation difference for a probe to be considered; default: 0.1
+##' @param regulation either "down" or "up", indicating whether down- or upregulation of the genes are tested.
+##' Downregulation implies a gain of methylation in promoter regions. default: down
+##' @param cor.min minimum correlation that a probe must exhibit to be considered significant; default: -1.0
+##' @param cor.max maximum correlation that a probe must exhibit to be considered significant; default: -0.1
+##' @param gene.region boolean indicating whether gene region information should be considered; default: FALSE.
+##' If this is FALSE, correlation for all probes is tested to be in the interval [cor.min; cor.max]. If this is
+##' TRUE, probes in the gene body are treated in the opposite way as all other probes because they are expected
+##' to have a positive correlation with gene expression.
+##' @return named list with ratio of significant probes for each genes, difference in average methylation between tumors and
+##' normals, correlation values between methylation and expression, paired and unpaired Wilcoxon p-values and corrected
+##' Wilcoxon p-values
+##' @author Andreas Schlicker
 doMethylationAnalysis = function(tumors, 
 								 normals, 
 								 genes, 
@@ -254,8 +282,8 @@ doMethylationAnalysis = function(tumors,
 								 wilcox.cutoff=0.05, 
 								 diff.cutoff=0.1, 
 								 regulation=c("down", "up"), 
-								 cor.min=0.1, 
-								 cor.max=1.0,
+								 cor.min=-1.0, 
+								 cor.max=-0.1,
 								 gene.region=FALSE) {
 							
   regulation = match.arg(regulation)
