@@ -73,27 +73,29 @@ cleanMethylation = function(meth.data, impute=TRUE, no.na=(ncol(meth.data)-1)) {
 # Calculates correlation between methylation probes and expression of the corresponding genes.
 # Correlation is calculated using all samples contained in both data matrices
 # meth.data should be a matrix with probes in rows and samples in columns
-# meth.ann has to be an annotation matrix mapping probes to genes; gene ids have to match
-# ids used in the expression data.
+# gene2probe named list mapping genes to probes. Names are gene symbols and values are vectors
+# with probe accessions
 # exprs.data should be a matrix with probes in rows and samples in columns
 # meth.probes should be a character vector giving the probes to test
-corMethExprs = function(meth.data, meth.ann, exprs.data, meth.probes) {
+corMethExprs = function(meth.data, gene2probe, exprs.data, meth.probes) {
   # All genes contained in the expression data
   exprs.genes = rownames(exprs.data)
   commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
 	
-  cors = numeric(nrow(meth.probes))
-  n = character(nrow(meth.probes))
-  for (i in 1:length(meth.probes)) {
-    if (meth.ann[meth.probes[i], 1] %in% exprs.genes) {
-      cors[i] = cor(exprs.data[meth.ann[meth.probes[i], 1], commonSamples], 
-			  		meth.data[meth.probes[i], commonSamples], 
-					method="spearman")
-      n[i] = meth.probes[i]
+  cors = numeric(length(meth.probes))
+  n = character(length(meth.probes))
+  j = 0
+  for (gene in names(gene2probe)) {
+	for (probe in intersect(gene2probe[[gene]], meth.probes)) {  
+		j = j + 1
+		cors[j] = cor(exprs.data[gene, commonSamples], 
+					  meth.data[probe, commonSamples], 
+					  method="spearman")
+		n[j] = probe
     }
   }
-  cors = cors[1:i]
-  names(cors) = n[1:i]
+  cors = cors[1:j]
+  names(cors) = n[1:j]
   
   cors
 }
@@ -104,43 +106,18 @@ corMethExprs = function(meth.data, meth.ann, exprs.data, meth.probes) {
 # Correlation is calculated using all samples contained in both data matrices
 # meth.data should be a matrix with probes in rows and samples in columns
 # meth.ann has to be an annotation matrix mapping probes to genes;
-# probe ids in 1st column, gene ids in 2nd and gene regions in 3rd;
+# probe ids in 1st column, gene ids and gene regions with colnames "gene" and "gene_region", respectively.
 # gene ids have to match ids used in the expression data.
 # exprs.data should be a matrix with probes in rows and samples in columns
 # meth.probes should be a character vector giving the probes to test
 corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c("all", "low", "high")) {
 	filt = match.arg(filt)
 	
-	# All genes contained in the expression data
 	exprs.genes = rownames(exprs.data)
-	commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
-	samps = commonSamples
+	samps = intersect(colnames(meth.data), colnames(exprs.data))
 	
-#	cors = c()
-#	n = c()
-#	for (x in meth.probes) {
-#		if (filt == "low") {
-#			samps = colnames(meth.data)[which(meth.data[x, commonSamples] < 0.3)]
-#		} else if (filt == "high") {
-#			samps = colnames(meth.data)[which(meth.data[x, commonSamples] > 0.7)]
-#		}
-#		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 2], ";"))
-#		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 3], ";"))
-#		genes_regions = unique(paste(genes, regions, sep="_"))
-#		
-#		for (gene_region in genes_regions) {
-#			gs = strsplit(gene_region, "_")
-#			if (gs[[1]][1] %in% exprs.genes) {
-#				cors = c(cors, cor(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman"))
-#				n = c(n, paste(x, gene_region, sep="_"))
-#			}
-#		}
-#	}
-#	names(cors) = n
-	
-	# Correlations
+	# Correlations and their names
 	cors = list()
-	# Names of correlations
 	n = list()
 	# Length of temporary vectors
 	LENGTH = 1000
@@ -171,8 +148,8 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 			samps = colnames(meth.data)[which(meth.data[x, commonSamples] > 0.7)]
 		}
 		# Get all genes and gene regions and combine them
-		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 2], ";"))
-		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), 3], ";"))
+		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), "gene"], ";"))
+		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), "gene_region"], ";"))
 		genes_regions = unique(paste(genes, regions, sep="_"))
 		
 		# Cycle through all gene-region combinations
@@ -187,8 +164,8 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 		}
 	}
 	# Save the last values
-	cors[[j]] = temp1[1:i]
-	n[[j]] = temp2[1:i]
+	cors[[j]] = temp1[1:(i-1)]
+	n[[j]] = temp2[1:(i-1)]
 	# And build the return value
 	cors = unlist(cors)
 	names(cors) = unlist(n)
@@ -269,17 +246,17 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
 }
 
 doMethylationAnalysis = function(tumors, 
-								normals, 
-								genes, 
-								exprs, 
-								probe.annotation, 
-								samples=NULL, 
-								wilcox.cutoff=0.05, 
-								diff.cutoff=0.1, 
-								regulation=c("down", "up"), 
-								cor.min=0.1, 
-								cor.max=1.0,
-								gene.region=FALSE) {
+								 normals, 
+								 genes, 
+								 exprs, 
+								 probe.annotation, 
+								 samples=NULL, 
+								 wilcox.cutoff=0.05, 
+								 diff.cutoff=0.1, 
+								 regulation=c("down", "up"), 
+								 cor.min=0.1, 
+								 cor.max=1.0,
+								 gene.region=FALSE) {
 							
   regulation = match.arg(regulation)
   
@@ -296,14 +273,35 @@ doMethylationAnalysis = function(tumors,
     normal.samples = intersect(samples, colnames(normals))
   }
   
-  selected.probes = intersect(intersect(rownames(tumors), rownames(normals)), rownames(probe.annotation[which(probe.annotation[,1] %in% genes), ]))
+  common.probes = intersect(rownames(tumors), rownames(normals))
+  # Does the probe in the given row map to any of the genes of interest?
+  found.gene = unlist(lapply(lapply(probe.annotation[, "gene"], 
+						  			function(x) { unlist(unique(str_split(x, ";"))) } ), 
+							 function(y) { any(y %in% genes) }))
+  # All probes that map to any of the genes
+  selected.probes = intersect(common.probes, 
+		  					  rownames(probe.annotation)[found.gene])
   
-  mean.tumor = apply(tumors[selected.probes, tumor.samples], 1, mean)
-  mean.normal = apply(normals[selected.probes, normal.samples], 1, mean)
+  # Mapping of genes to the probes
+  gene2probe = list()
+  for (probe in selected.probes) {
+	  temp = unique(str_split(probe.annotation[probe, "gene"], ";")[[1]])
+	  for (gene in temp) { 
+	  	if (is.null(gene2probe[[gene]])) {
+			gene2probe[[gene]] = c()
+		}
+		gene2probe[[gene]] = c(gene2probe[[gene]], probe)
+	  }
+  }
+  
+  # Mean methylation filtering
+  mean.tumor = apply(tumors[selected.probes, tumor.samples], 1, mean, na.rm=TRUE)
+  mean.normal = apply(normals[selected.probes, normal.samples], 1, mean, na.rm=TRUE)
   mean.diff = mean.tumor - mean.normal
   selected.probes = names(mean.diff[compare(mean.diff, diff.cutoff)])
   selected.probes = selected.probes[!is.na(selected.probes)]
   
+  # Correlation between methylation and expression data filtering
   cors = c()
   if (length(selected.probes) > 0) {
     temp = matrix(tumors[selected.probes, tumor.samples], nrow=length(selected.probes), byrow=TRUE)
@@ -312,17 +310,18 @@ doMethylationAnalysis = function(tumors,
 	# gene.region determines whether gene region information is available for the
 	# methylation probes. If so, body probes are treated differently from other probes.
 	if (!gene.region) {
-    	cors = corMethExprs(temp, probe.annotation, exprs, selected.probes)
+    	cors = corMethExprs(temp, gene2probe, exprs, selected.probes)
     	selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
     } else {
 		cors = corMethExprsMult(temp, probe.annotation, exprs, selected.probes)
 		# The correlation names have the form <meth.probe_gene_gene.region>
 		# Split everything up into matrix form:
 		# meth.probe, gene, gene.region, correlation
-		cors = cbind(do.call("rbind", strsplit(names(cors), "_")), cors)
+		cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), cors)
 		colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val")
-		selected.probes = c(subset(cors, gene.region != "Body" & cor.val <= cor.max & cor.val >= cor.min)[, "meth.probe"],
-				subset(cors, gene.region == "Body" & cor.val <= (-1*cor.min) & cor.val >= (-1*cor.max))[, "meth.probe"])
+		cors[, "meth.probe"] = as.character(cors[, "meth.probe"])
+		selected.probes = c(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
+							cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
 	}
   }
   
@@ -355,7 +354,7 @@ doMethylationAnalysis = function(tumors,
   
   for (gene in genes) {
     # Get all probes for that gene
-    geneProbes = which(probe.annotation[,1] == gene)
+    geneProbes = gene2probe[[gene]]
     if (length(geneProbes) > 1) {
       # If there is more than one probe, get the rownames 
       allProbes = rownames(probe.annotation[geneProbes, ])
