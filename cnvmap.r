@@ -21,36 +21,6 @@ getGeneLocs = function(genes, warningsfile="warnings.txt", genome="hg18") {
   
   wf = NULL
   
-  # Gene symbols for which no location could be found
-  #notFound = setdiff(genes, res[, "hgnc_symbol"])
-  #for (g in notFound) {
-  #  # Map the current symbol to its synonyms
-  #  syn = getBM(attributes=c("gd_prev_sym"), filters=c("gd_app_sym"), values=g, mart=hgnc.mart)
-  #  if (nrow(syn) == 1) {
-  #    # Get a vector with synonyms
-  #    syn = unlist(strsplit(syn[1, 1], ", "))
-  #    for (gs in syn) {
-  #    	# Check whether Ensembl knows this symbol
-  #      loc = getBM(attributes=c("hgnc_symbol", "chromosome_name", "start_position", "end_position"), filters=c("hgnc_symbol"), values=gs, mart=mart)
-  #      if (nrow(loc) > 0) {
-  #        if (is.null(wf)) {
-  #          wf = file(warningsfile, "a")
-  #        }
-  #        cat(paste("Mapped symbol ", g, " to ", loc[, "hgnc_symbol"], ", ", loc[, "chromosome_name"], ", ", loc[, "start_position"], ", ", loc[, "end_position"], "!\n", sep=""), file=wf)
-  #        # Use the original symbol and add the location to the result
-  #        loc[1, "hgnc_symbol"] = g
-  #        res = rbind(res, loc)
-  #        break
-  #      }
-  #    }
-  #  } else {
-  #    if (is.null(wf)) {
-  #      wf = file(warningsfile, "a")
-  #    }
-  #    cat(paste("Could not map ", g, " to chromosomal location!\n", sep=""), file=wf)
-  #  }
-  #}
-  
   if (length(unique(res$hgnc_symbol)) < length(res$hgnc_symbol)) {
   	if (is.null(wf)) {
   		wf = file(warningsfile, "a")
@@ -212,8 +182,14 @@ runCGHComp = function(tumors, normals) {
   # Samples from tumors that have a matched normal
   tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
   # Retain only the normal samples for which there is a tumor
-  normals = normals[, tumors.matchedsamples]
+  temp = normals[, tumors.matchedsamples]
   # Rename normal samples to reflect the state
+  if (is.vector(temp)) {
+	  temp = matrix(temp, nrow=1)
+	  rownames(temp) = rownames(normals)
+	  colnames(temp) = tumors.matchedsamples
+	  normals = temp
+  }
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
 
   tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
