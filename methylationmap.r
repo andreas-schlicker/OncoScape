@@ -296,7 +296,7 @@ genesAndProbes = function(tumors, normals, genes, probe.annotation) {
 ##' giving name of gene region for every gene (possibily separated by ";"), "chrom" and
 ##' "pos" giving the position.
 ##' @param selected.probes vector with all probes to investigate (as returned by genesAndProbes())
-##' @param gene2probes mapping of genes to their methylation probes (as returned by genesAndProbes())
+##' @param gene2probe mapping of genes to their methylation probes (as returned by genesAndProbes())
 ##' @param samples vector with samples to include in the analysis, if == NULL, all samples are used; default: NULL
 ##' @param wilcox.cutoff significance cut-off for Wilcoxon test; this cut-off is applied to Benjamini-Hochberg-
 ##' corrected p-values; default: 0.05
@@ -321,7 +321,7 @@ doMethylationAnalysis = function(tumors,
 								 exprs, 
 								 probe.annotation,
 								 selected.probes,
-								 gene2probes,
+								 gene2probe,
 								 samples=NULL, 
 								 wilcox.cutoff=0.05, 
 								 diff.cutoff=0.1, 
