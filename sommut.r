@@ -79,3 +79,32 @@ summarizeMutations = function(mutations, genes, ratio.mut.samples=0.01, uniquene
   
   return(gene.scores)
 }
+
+##' Count the number of tumors affected by mutations in the given genes. 
+##' @param mut.summary matrix summarizing mutation information as produced by analyzeMuts()
+##' @param mutations the matrix with the mutation data
+##' @param genes a character vector containing the genes to be analyzed
+##' @param ignore character vector containing the type of mutations that should be 
+##' ignored, this vector is used as is; defaults to c("silent")
+##' @param genecol integer giving the index of the gene id column or the column name; defaults to 1
+##' @param typecol integer giving the index of the mutation type column or the column name; defaults to 9
+##' @param samplecol integer giving the index of the sample id column or the column name; defaults to 16
+##' @return named list with two components; "summary" is a matrix with absolute (1st column) 
+##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
+##' samples affected by a change in this feature
+##' @author Andreas Schlicker
+mutationsAffectedSamples = function(mut.summary, mutations, genes, ignore=c("Silent"), 
+									samples=NULL,
+									genecol=1, typecol=9, samplecol=16) {  
+	locMutations = mutations
+	if (!is.null(samples)) {
+		locMutations = mutations[which(mutations[, samplecol] %in% samples), ]
+	}
+	
+	res = lapply(genes,
+				 function(x) { locMutations[which(locMutations[, genecol] == gene & !(locMutations[, typecol] %in% ignore)), samplecol] })
+	names(res) = genes
+	
+	return(list(summary=cbind(absolute=mut.summary[, "mutated samples"], relative=(mut.summary[, "mutated samples"] / mut.summary[, "unique samples"])),
+				samples=res))
+}
