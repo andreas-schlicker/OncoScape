@@ -255,6 +255,8 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
 ##' @return named list with two entries ("selected.probes" and "gene2probe")
 ##' @author Andreas Schlicker
 genesAndProbes = function(tumors, normals, genes, probe.annotation) {
+	require(stringr) || stop("Could not load package \"stringr\"!")
+	
 	common.probes = intersect(rownames(tumors), rownames(normals))
 	
 	# Does the probe in the given row map to any of the genes of interest?
