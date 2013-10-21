@@ -123,3 +123,35 @@ matrixFromVector = function(vec) {
 	colnames(tmp) = names(vec)
 	tmp
 }
+
+##' Count the number of tumors that differ from the mean in normal samples. 
+##' @param feature vector with feature IDs
+##' @param tumors numeric matrix with features in rows and tumors samples in columns
+##' @param normals numeric matrix with features in rows and normal samples in columns
+##' @param regulation either "down" or "up" to test for values lower than or greater than the
+##' normal mean
+##' @param stddev how many standard deviations does a sample have to be away from the mean
+##' @return named list with two components; "summary" is a matrix with absolute (1st column) 
+##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
+##' samples affected by a change in this feature
+##' @author Andreas Schlicker
+countAffectedSamples = function(features, tumors, normals, regulation=c("down", "up"), stddev=1) {
+	regulation = match.arg(regulation)
+	
+	# Get the correct comparison function
+	# If we want to find genes with greater expression in tumors get the greaterThan function
+	# If we want to find genes with lower expression in tumors, get the smallerThan function
+	compare = switch(regulation, down=smallerThan, up=greaterThan)
+	stddev = switch(regulation, down=stddev*-1, up=stddev)
+	
+	normal.means = apply(normals, 1, mean, na.rm=TRUE)
+	normal.sd = apply(normals, 1, sd, na.rm=TRUE)
+	
+	affected = sapply(features, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
+	samples=lapply(features, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
+	names(samples) = features
+	
+	list(summary=cbind(absolute=affected, relative=(affected / ncol(tumors))),
+		 samples=samples)
+}
+
