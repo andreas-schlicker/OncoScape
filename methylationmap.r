@@ -245,6 +245,42 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
   return(gene.scores)
 }
 
+##' Preprocessing of methylation annotation. Select all probes that map to
+##' any of the genes of interest and map these genes to their probes.
+##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
+##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
+##' @param genes vector with gene symbols 
+##' @param probe.annotation methylation probe annotation matrix. The first column has to be the 
+##' probe id, "gene" column giving gene IDs (possibily separated by ";")
+##' @return named list with two entries ("selected.probes" and "gene2probe")
+##' @author Andreas Schlicker
+genesAndProbes = function(tumors, normals, genes, probe.annotation) {
+	common.probes = intersect(rownames(tumors), rownames(normals))
+	
+	# Does the probe in the given row map to any of the genes of interest?
+	found.gene = unlist(lapply(lapply(probe.annotation[, "gene"], 
+									  function(x) { unlist(unique(str_split(x, ";"))) } ), 
+							   function(y) { any(y %in% genes) }))
+	
+	# All probes that map to any of the genes
+	selected.probes = intersect(common.probes, 
+			rownames(probe.annotation)[found.gene])
+	
+	# Mapping of genes to the probes
+	gene2probe = list()
+	for (probe in selected.probes) {
+		temp = unique(str_split(probe.annotation[probe, "gene"], ";")[[1]])
+		for (gene in temp) { 
+			if (is.null(gene2probe[[gene]])) {
+				gene2probe[[gene]] = c()
+			}
+			gene2probe[[gene]] = c(gene2probe[[gene]], probe)
+		}
+	}
+	
+	list(selected.probes=selected.probes, gene2probe=gene2probe)
+}
+
 ##' Performs all steps of the methylation analysis. First, probes that don't meet the
 ##' "diff.cutoff" are filtered out. Second, probes without significant correlation
 ##' with gene expression are filtered out. Third, probes without significant difference
@@ -257,6 +293,8 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
 ##' probe id, "gene" column giving gene IDs (possibily separated by ";"), "gene_region" column
 ##' giving name of gene region for every gene (possibily separated by ";"), "chrom" and
 ##' "pos" giving the position.
+##' @param selected.probes vector with all probes to investigate (as returned by genesAndProbes())
+##' @param gene2probes mapping of genes to their methylation probes (as returned by genesAndProbes())
 ##' @param samples vector with samples to include in the analysis, if == NULL, all samples are used; default: NULL
 ##' @param wilcox.cutoff significance cut-off for Wilcoxon test; this cut-off is applied to Benjamini-Hochberg-
 ##' corrected p-values; default: 0.05
@@ -269,6 +307,8 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
 ##' If this is FALSE, correlation for all probes is tested to be in the interval [cor.min; cor.max]. If this is
 ##' TRUE, probes in the gene body are treated in the opposite way as all other probes because they are expected
 ##' to have a positive correlation with gene expression.
+##' @param stddev used to assess whether a samples is affected by a change in methylation; the sample has to deviate
+##' more than this many standard deviations in normal samples from the mean in normal samples; default: 1  
 ##' @return named list with ratio of significant probes for each genes, difference in average methylation between tumors and
 ##' normals, correlation values between methylation and expression, paired and unpaired Wilcoxon p-values and corrected
 ##' Wilcoxon p-values
@@ -277,14 +317,17 @@ doMethylationAnalysis = function(tumors,
 								 normals, 
 								 genes, 
 								 exprs, 
-								 probe.annotation, 
+								 probe.annotation,
+								 selected.probes,
+								 gene2probes,
 								 samples=NULL, 
 								 wilcox.cutoff=0.05, 
 								 diff.cutoff=0.1, 
 								 regulation=c("down", "up"), 
 								 cor.min=-1.0, 
 								 cor.max=-0.1,
-								 gene.region=FALSE) {
+								 gene.region=FALSE,
+								 stddev=1) {
 							
   regulation = match.arg(regulation)
   
@@ -299,27 +342,6 @@ doMethylationAnalysis = function(tumors,
   } else {
     tumor.samples = intersect(samples, colnames(tumors))
     normal.samples = intersect(samples, colnames(normals))
-  }
-  
-  common.probes = intersect(rownames(tumors), rownames(normals))
-  # Does the probe in the given row map to any of the genes of interest?
-  found.gene = unlist(lapply(lapply(probe.annotation[, "gene"], 
-						  			function(x) { unlist(unique(str_split(x, ";"))) } ), 
-							 function(y) { any(y %in% genes) }))
-  # All probes that map to any of the genes
-  selected.probes = intersect(common.probes, 
-		  					  rownames(probe.annotation)[found.gene])
-  
-  # Mapping of genes to the probes
-  gene2probe = list()
-  for (probe in selected.probes) {
-	  temp = unique(str_split(probe.annotation[probe, "gene"], ";")[[1]])
-	  for (gene in temp) { 
-	  	if (is.null(gene2probe[[gene]])) {
-			gene2probe[[gene]] = c()
-		}
-		gene2probe[[gene]] = c(gene2probe[[gene]], probe)
-	  }
   }
   
   # Mean methylation filtering
@@ -357,6 +379,8 @@ doMethylationAnalysis = function(tumors,
   wilcox.bh = list(unpaired=c(), paired=c())
   selected.probes.unpaired = c()
   selected.probes.paired = c()
+  affected.samples.unpaired = list()
+  affected.samples.paired = list()
   if (length(selected.probes) > 0) {
     tt = tumors[selected.probes, tumor.samples]
     tn = normals[selected.probes, normal.samples]
@@ -374,12 +398,42 @@ doMethylationAnalysis = function(tumors,
     wilcox.bh = list(unpaired=p.adjust(wilcox$unpaired, method="BH"), paired=p.adjust(wilcox$paired, method="BH"))
     selected.probes.unpaired = names(wilcox.bh$unpaired[which(wilcox.bh$unpaired < wilcox.cutoff)])
     selected.probes.paired = names(wilcox.bh$paired[which(wilcox.bh$paired < wilcox.cutoff)])
+	# Check which samples are affected by the difference in methylation. 
+	# The direction in methylation has to be reversed for regulatory probes
+	nonbody = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
+													 tumors[selected.probes.unpaired, ], 
+													 normals[selected.probes.unpaired, ], 
+													 regulation=switch(regulation, up="down", down="up"), 
+													 stddev)
+	body = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
+													 tumors[selected.probes.unpaired, ], 
+													 normals[selected.probes.unpaired, ], 
+													 regulation=regulation, 
+													 stddev)
+	affected.samples.unpaired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
+	nonbody = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
+													 tumors[selected.probes.paired, ], 
+													 normals[selected.probes.paired, ], 
+						 							 regulation=switch(regulation, up="down", down="up"), 
+													 stddev)
+	body = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
+													 tumors[selected.probes.paired, ], 
+													 normals[selected.probes.paired, ], 
+													 regulation=regulation, 
+													 stddev)
+	affected.samples.paired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
   }
   
   gene.scores = list(unpaired=rep(0.0, length(genes)), paired=rep(0.0, length(genes))) 
   names(gene.scores$unpaired) = genes
   names(gene.scores$paired) = genes
-  
+  samples = list(unpaired=list(), paired=list())
+  summary = list(unpaired=matrix(0, ncol=2, nrow=length(genes)), paired=matrix(0, ncol=2, nrow=length(genes)))
+  rownames(summary$unpaired) = genes
+  colnames(summary$unpaired) = c("absolute", "relative")
+  rownames(summary$paired) = genes
+  colnames(summary$paired) = c("absolute", "relative")
+  nTumors = ncol(tumors)
   for (gene in genes) {
     # Get all probes for that gene
     geneProbes = gene2probe[[gene]]
@@ -395,9 +449,15 @@ doMethylationAnalysis = function(tumors,
     if (temp > 0) {
       gene.scores$unpaired[gene] = length(intersect(allProbes, selected.probes.unpaired)) / temp
       gene.scores$paired[gene] = length(intersect(allProbes, selected.probes.paired)) / temp
+	  samples$unpaired[[gene]] = unique(unlist(affected.samples.unpaired$samples[intersect(allProbes, selected.probes.unpaired)]))
+	  samples$paired[[gene]] = unique(unlist(affected.samples.paired$samples[intersect(allProbes, selected.probes.paired)]))
+	  summary$unpaired[gene, "absolute"] = length(samples$unpaired[[gene]])
+	  summary$unpaired[gene, "relative"] = summary$unpaired[gene, "absolute"] / nTumors
+	  summary$paired[gene, "absolute"] = length(samples$paired[[gene]])
+	  summary$paired[gene, "relative"] = summary$paired[gene, "absolute"] / nTumors
     }
   }
   
-  return(list(scores=gene.scores, diffs=mean.diff, cors=cors, wilcox=wilcox, corrected=wilcox.bh))
+  return(list(scores=gene.scores, diffs=mean.diff, cors=cors, wilcox=wilcox, corrected=wilcox.bh, samples=samples, summary=summary))
 }
 
