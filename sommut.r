@@ -102,7 +102,7 @@ mutationsAffectedSamples = function(mut.summary, mutations, genes, ignore=c("Sil
 	}
 	
 	res = lapply(genes,
-				 function(x) { locMutations[which(locMutations[, genecol] == gene & !(locMutations[, typecol] %in% ignore)), samplecol] })
+				 function(x) { locMutations[which(locMutations[, genecol] == x & !(locMutations[, typecol] %in% ignore)), samplecol] })
 	names(res) = genes
 	
 	return(list(summary=cbind(absolute=mut.summary[, "mutated samples"], relative=(mut.summary[, "mutated samples"] / mut.summary[, "unique samples"])),
