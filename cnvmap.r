@@ -188,8 +188,9 @@ runCGHComp = function(tumors, normals) {
 	  temp = matrix(temp, nrow=1)
 	  rownames(temp) = rownames(normals)
 	  colnames(temp) = tumors.matchedsamples
-	  normals = temp
+	  
   }
+  normals = temp
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
 
   tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
