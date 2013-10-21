@@ -149,7 +149,7 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 }
 
 ##' Tests for differential expression between tumors and normals.
-##' @param genes character vector of gene symbols; must contain all gene symbols in exprs.res
+##' @param genes character vector of gene symbols
 ##' @param exprs.res data.frame with expression differences as returned by runExprComp()
 ##' @param regulation either "down" or "up", whether down- or upregulation in tumors
 ##' should be scored
@@ -167,7 +167,8 @@ doExprAnalysis = function(genes, exprs.res, regulation=c("down", "up"), wilcox.c
 	
 	gene.scores = rep(0, length(genes))
 	names(gene.scores) = genes
-	hits = apply(exprs.res, 1, function(x) { x["BH"] < wilcox.cutoff & compare(x["tumor.exprs"], x["normal.exprs"]) })
+	hits = apply(exprs.res[intersect(rownames(exprs.res), genes), ], 
+				 1, function(x) { x["BH"] < wilcox.cutoff & compare(x["tumor.exprs"], x["normal.exprs"]) })
 	gene.scores[names(hits)[hits]] = 1
 	
 	gene.scores
