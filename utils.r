@@ -124,7 +124,8 @@ matrixFromVector = function(vec) {
 	tmp
 }
 
-##' Count the number of tumors that differ from the mean in normal samples. 
+##' Count the number of tumors that differ from the mean in normal samples.
+##' All features that are not present in the tumors and/or normals matrix are filtered out.
 ##' @param feature vector with feature IDs
 ##' @param tumors numeric matrix with features in rows and tumors samples in columns
 ##' @param normals numeric matrix with features in rows and normal samples in columns
@@ -147,9 +148,11 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 	normal.means = apply(normals, 1, mean, na.rm=TRUE)
 	normal.sd = apply(normals, 1, sd, na.rm=TRUE)
 	
-	affected = sapply(features, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
-	samples=lapply(features, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
-	names(samples) = features
+	common = intersect(features, intersect(rownames(tumors), rownames(normals)))
+	
+	affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
+	samples=lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
+	names(samples) = common
 	
 	list(summary=cbind(absolute=affected, relative=(affected / ncol(tumors))),
 		 samples=samples)
