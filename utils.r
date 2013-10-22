@@ -132,29 +132,78 @@ matrixFromVector = function(vec) {
 ##' @param regulation either "down" or "up" to test for values lower than or greater than the
 ##' normal mean
 ##' @param stddev how many standard deviations does a sample have to be away from the mean
+##' @param paired boolean; if TRUE, the value of the tumor sample is compared to the value of
+##' its paired normal sample; if FALSE, all tumor sample values are compared to the mean over
+##' all normals
 ##' @return named list with two components; "summary" is a matrix with absolute (1st column) 
 ##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
 ##' samples affected by a change in this feature
 ##' @author Andreas Schlicker
-countAffectedSamples = function(features, tumors, normals, regulation=c("down", "up"), stddev=1) {
-	regulation = match.arg(regulation)
+countAffectedSamples = function(features, tumors, normals, regulation=c("down", "up"), stddev=1, paired=TRUE) {
+	if (length(features) > 0) {
+		regulation = match.arg(regulation)
+		
+		# Get the correct comparison function
+		# If we want to find genes with greater expression in tumors get the greaterThan function
+		# If we want to find genes with lower expression in tumors, get the smallerThan function
+		compare = switch(regulation, down=smallerThan, up=greaterThan)
+		stddev = switch(regulation, down=stddev*-1, up=stddev)
+		
+		normal.means = apply(normals, 1, mean, na.rm=TRUE)
+		normal.sd = apply(normals, 1, sd, na.rm=TRUE)
+		
+		common = intersect(features, intersect(rownames(tumors), rownames(normals)))
+		
+		# Number of samples to normalize with
+		normFactor = ncol(tumors)
+		if (paired) {
+			# Which tumor samples have a matched normal?
+			matched.samples = intersect(colnames(tumors), colnames(normals))
+			normFactor = length(matched.samples)
+			# Compare each tumor to the matched normal value, leave margin of "stddev" times the standard deviation over all normal samples 
+			affected = sapply(common, function(x) { sum(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) })) })
+			# Get the names of the samples that are affected
+			samples = lapply(common, function(x) { names(which(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) }))) })
+			# Delete the feature name to only retain the sample name 
+			samples = lapply(1:length(common), function(x) { gsub(paste(".", common[x], sep=""), "", samples[[x]]) })
+			names(samples) = common
+		} else {
+			# Number of affected samples
+			affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
+			# Which samples are affected by feature
+			# No need to cut off the feature name here
+			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
+			names(samples) = common
+		}
+		
+		res = list(summary=cbind(absolute=affected, relative=(affected / normFactor)),
+				   samples=samples)
+	} else {
+		res = list()
+	}
 	
-	# Get the correct comparison function
-	# If we want to find genes with greater expression in tumors get the greaterThan function
-	# If we want to find genes with lower expression in tumors, get the smallerThan function
-	compare = switch(regulation, down=smallerThan, up=greaterThan)
-	stddev = switch(regulation, down=stddev*-1, up=stddev)
-	
-	normal.means = apply(normals, 1, mean, na.rm=TRUE)
-	normal.sd = apply(normals, 1, sd, na.rm=TRUE)
-	
-	common = intersect(features, intersect(rownames(tumors), rownames(normals)))
-	
-	affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
-	samples=lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
-	names(samples) = common
-	
-	list(summary=cbind(absolute=affected, relative=(affected / ncol(tumors))),
-		 samples=samples)
+	res
 }
 
+##' Compute the union of all elements of the input list.
+##' @samples a named list with vectors to get the union of
+##' @use a vector scores; if given, an entry of 1 indicates
+##' that this sample list has to be taken into account; default: NULL
+##' Both arguments need to use the same names for elements
+##' @return the union
+##' @author Andreas Schlicker
+sampleUnion = function(samples, use=NULL) {
+	res = c()
+	indexes = names(samples)
+	if (is.null(indexes)) {
+		indexes = 1:length(samples)
+	}
+	if (!is.null(use)) {
+		indexes = names(which(use == 1))
+	}
+	for (i in indexes) {
+		res = union(res, samples[[i]])
+	}
+	
+	res
+}
