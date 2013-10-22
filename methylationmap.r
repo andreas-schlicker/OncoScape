@@ -406,23 +406,23 @@ doMethylationAnalysis = function(tumors,
 													 tumors[selected.probes.unpaired, ], 
 													 normals[selected.probes.unpaired, ], 
 													 regulation=switch(regulation, up="down", down="up"), 
-													 stddev)
+													 stddev, FALSE)
 	body = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
 													 tumors[selected.probes.unpaired, ], 
 													 normals[selected.probes.unpaired, ], 
 													 regulation=regulation, 
-													 stddev)
+													 stddev, FALSE)
 	affected.samples.unpaired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
 	nonbody = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
 													 tumors[selected.probes.paired, ], 
 													 normals[selected.probes.paired, ], 
 						 							 regulation=switch(regulation, up="down", down="up"), 
-													 stddev)
+													 stddev, TRUE)
 	body = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
 													 tumors[selected.probes.paired, ], 
 													 normals[selected.probes.paired, ], 
 													 regulation=regulation, 
-													 stddev)
+													 stddev, TRUE)
 	affected.samples.paired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
   }
   
