@@ -153,6 +153,7 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 		normal.sd = apply(normals, 1, sd, na.rm=TRUE)
 		
 		common = intersect(features, intersect(rownames(tumors), rownames(normals)))
+		missing = setdiff(features, common)
 		
 		# Number of samples to normalize with
 		normFactor = ncol(tumors)
@@ -175,6 +176,12 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
 			names(samples) = common
 		}
+		
+		# Add all missing features and resort
+		affected[missing] = NA
+		affected = affected[features]
+		samples[missing] = NA
+		samples = samples[features]
 		
 		res = list(summary=cbind(absolute=affected, relative=(affected / normFactor)),
 				   samples=samples)
