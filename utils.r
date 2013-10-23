@@ -161,12 +161,22 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			# Which tumor samples have a matched normal?
 			matched.samples = intersect(colnames(tumors), colnames(normals))
 			normFactor = length(matched.samples)
-			# Compare each tumor to the matched normal value, leave margin of "stddev" times the standard deviation over all normal samples 
-			affected = sapply(common, function(x) { sum(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) })) })
+			
+			# All differences 
+			deltaMat = tumors[common, matched.samples] - normals[common, matched.samples]
+			# Per gene standard deviation of the differences
+			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
+			# An sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
+			affected = apply(deltaMat - stddev*deltaSd, 1, function(x) { sum(compare(x, 0)) })
 			# Get the names of the samples that are affected
-			samples = lapply(common, function(x) { names(which(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) }))) })
+			samples = apply(deltaMat - stddev*deltaSd, 1, function(x) { names(which(compare(x, 0))) })
+			
+			# Compare each tumor to the matched normal value, leave margin of "stddev" times the standard deviation over all normal samples 
+			#affected = sapply(common, function(x) { sum(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) })) })
+			# Get the names of the samples that are affected
+			#samples = lapply(common, function(x) { names(which(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) }))) })
 			# Delete the feature name to only retain the sample name 
-			samples = lapply(1:length(common), function(x) { gsub(paste(".", common[x], sep=""), "", samples[[x]]) })
+			#samples = lapply(1:length(common), function(x) { gsub(paste(".", common[x], sep=""), "", samples[[x]]) })
 			names(samples) = common
 		} else {
 			# Number of affected samples
