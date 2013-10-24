@@ -184,11 +184,8 @@ runCGHComp = function(tumors, normals) {
   # Retain only the normal samples for which there is a tumor
   temp = normals[, tumors.matchedsamples]
   # Rename normal samples to reflect the state
-  if (is.vector(temp)) {
-	  temp = matrix(temp, nrow=1)
-	  rownames(temp) = rownames(normals)
-	  colnames(temp) = tumors.matchedsamples
-	  
+  if (!is.matrix(temp)) {
+	  temp = matrixFromVector(temp)
   }
   normals = temp
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
@@ -200,7 +197,7 @@ runCGHComp = function(tumors, normals) {
   if (nrow(tumors) > 1) {
     inpMat = cbind(tumors[, tumors.matchedsamples], normals)
   } else {
-    inpMat = matrix(c(tumors[, tumors.matchedsamples], normals), nrow=1, byrow=TRUE)
+    inpMat = matrixFromVector(c(tumors[, tumors.matchedsamples], normals))
     rownames(inpMat) = rownames(tumors)
     colnames(inpMat) = c(tumors.matchedsamples, colnames(normals))
   }
