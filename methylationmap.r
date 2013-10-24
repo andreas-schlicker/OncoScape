@@ -9,10 +9,24 @@
 # Returns a named list with results from paired and un-paired tests.
 
 runMethComp = function(tumors, normals, probes) {
+  if (!is.matrix(tumors)) {
+	  tumors = matrixFromVector(tumors)
+	  rownames(tumors) = probes
+  }
+  if (!is.matrix(normals)) {
+	  normals = matrixFromVector(normals)
+	  rownames(normals) = probes
+  }
   # Samples from tumors that have a matched normal
   tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
   # Retain only the normal samples for which there is a tumor
+  
   normals = normals[, tumors.matchedsamples]
+  if (!is.matrix(normals)) {
+	  normals = matrixFromVector(normals)
+	  rownames(normals) = probes
+  }
+  
   # Rename normal samples to reflect the state
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
 
@@ -372,8 +386,8 @@ doMethylationAnalysis = function(tumors,
 		cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), cors)
 		colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val")
 		cors[, "meth.probe"] = as.character(cors[, "meth.probe"])
-		selected.probes = c(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
-							cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
+		selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
+								cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
 	}
   }
   
