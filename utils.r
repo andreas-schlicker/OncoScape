@@ -149,6 +149,16 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 		compare = switch(regulation, down=smallerThan, up=greaterThan)
 		stddev = switch(regulation, down=stddev*-1, up=stddev)
 		
+		if (!is.matrix(normals)) {
+			normals = matrixFromVector(normals)
+			rownames(normals) = features
+		}
+		
+		if (!is.matrix(tumors)) {
+			tumors = matrixFromVector(tumors)
+			rownames(tumors) = features
+		}
+		
 		normal.means = apply(normals, 1, mean, na.rm=TRUE)
 		normal.sd = apply(normals, 1, sd, na.rm=TRUE)
 		
@@ -162,6 +172,11 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			
 			# All differences 
 			deltaMat = tumors[common, matched.samples] - normals[common, matched.samples]
+			if (!is.matrix(deltaMat)) {
+				deltaMat = matrixFromVector(deltaMat)
+				rownames(deltaMat) = rownames(tumors)
+			}
+			
 			# Per gene standard deviation of the differences
 			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
 			# An sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
