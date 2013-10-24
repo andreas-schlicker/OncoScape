@@ -155,8 +155,6 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 		common = intersect(features, intersect(rownames(tumors), rownames(normals)))
 		missing = setdiff(features, common)
 		
-		# Number of samples to normalize with
-		normFactor = ncol(tumors)
 		if (paired) {
 			# Which tumor samples have a matched normal?
 			matched.samples = intersect(colnames(tumors), colnames(normals))
@@ -177,8 +175,11 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			#samples = lapply(common, function(x) { names(which(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) }))) })
 			# Delete the feature name to only retain the sample name 
 			#samples = lapply(1:length(common), function(x) { gsub(paste(".", common[x], sep=""), "", samples[[x]]) })
-			names(samples) = common
+			#names(samples) = common
 		} else {
+			# Number of samples to normalize with
+			normFactor = ncol(tumors)
+			
 			# Number of affected samples
 			affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
 			# Which samples are affected by feature
