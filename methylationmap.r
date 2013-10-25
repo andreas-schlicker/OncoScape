@@ -356,10 +356,8 @@ doMethylationAnalysis = function(tumors,
   # Correlation between methylation and expression data filtering
   cors = c()
   if (length(selected.probes) > 0) {
-    temp = matrix(tumors[selected.probes, tumor.samples, drop=FALSE], nrow=length(selected.probes), byrow=TRUE)
-    rownames(temp) = selected.probes
-    colnames(temp) = tumor.samples
-	# gene.region determines whether gene region information is available for the
+    temp = tumors[selected.probes, tumor.samples, drop=FALSE]
+    # gene.region determines whether gene region information is available for the
 	# methylation probes. If so, body probes are treated differently from other probes.
 	if (!gene.region) {
     	cors = corMethExprs(temp, gene2probe, exprs, selected.probes)
@@ -392,7 +390,6 @@ doMethylationAnalysis = function(tumors,
     selected.probes.unpaired = names(wilcox.bh$unpaired[which(wilcox.bh$unpaired < wilcox.cutoff)])
     selected.probes.paired = names(wilcox.bh$paired[which(wilcox.bh$paired < wilcox.cutoff)])
 	# Check which samples are affected by the difference in methylation. 
-	# The direction in methylation has to be reversed for regulatory probes
 	nonbody = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
 													 tumors[selected.probes.unpaired, , drop=FALSE], 
 													 normals[selected.probes.unpaired, , drop=FALSE], 
@@ -430,13 +427,7 @@ doMethylationAnalysis = function(tumors,
   for (gene in genes) {
     # Get all probes for that gene
     geneProbes = gene2probe[[gene]]
-    #if (length(geneProbes) > 1) {
-      # If there is more than one probe, get the rownames 
-      allProbes = rownames(probe.annotation[geneProbes, , drop=FALSE])
-    #} else {
-    #  # Else the probe name has to be created again
-    #  allProbes = c(paste(probe.annotation[geneProbes, "chrom"], probe.annotation[geneProbes, "pos"], sep="_"))
-    #}
+	allProbes = rownames(probe.annotation[geneProbes, , drop=FALSE])
     
     temp = length(geneProbes)
     if (temp > 0) {
