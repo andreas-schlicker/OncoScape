@@ -21,11 +21,7 @@ runMethComp = function(tumors, normals, probes) {
   tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
   # Retain only the normal samples for which there is a tumor
   
-  normals = normals[, tumors.matchedsamples]
-  if (!is.matrix(normals)) {
-	  normals = matrixFromVector(normals)
-	  rownames(normals) = probes
-  }
+  normals = normals[, tumors.matchedsamples, drop=FALSE]
   
   # Rename normal samples to reflect the state
   colnames(normals) = paste(colnames(normals), "normal", sep="_")
@@ -36,21 +32,11 @@ runMethComp = function(tumors, normals, probes) {
   # Which probes map to any of the genes?
   selected.probes = intersect(intersect(rownames(tumors), rownames(normals)), probes)
 
-  inpMat = cbind(tumors[selected.probes, tumors.matchedsamples], normals[selected.probes, ])
-  if (length(selected.probes) == 1) {
-    inpMat = matrix(c(tumors[selected.probes, tumors.matchedsamples], normals[selected.probes, ]), nrow=1)
-    rownames(inpMat) = selected.probes
-    colnames(inpMat) = c(tumors.matchedsamples, colnames(normals))
-  }
+  inpMat = cbind(tumors[selected.probes, tumors.matchedsamples, drop=FALSE], normals[selected.probes, , drop=FALSE])
   # Run paired Wilcoxon tests
   pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
   
-  inpMat = cbind(tumors[selected.probes, ], normals[selected.probes, ])
-  if (length(selected.probes) == 1) {
-    inpMat = matrix(c(tumors[selected.probes, ], normals[selected.probes, ]), nrow=1)
-    rownames(inpMat) = selected.probes
-    colnames(inpMat) = c(colnames(tumors), colnames(normals))
-  }
+  inpMat = cbind(tumors[selected.probes, , drop=FALSE], normals[selected.probes, , drop=FALSE])
   # Run un-paired Wilcoxon tests
   wilcox.p = doWilcox(inpMat=inpMat, groups=tumors.groups)
 
@@ -361,8 +347,8 @@ doMethylationAnalysis = function(tumors,
   }
   
   # Mean methylation filtering
-  mean.tumor = apply(tumors[selected.probes, tumor.samples], 1, mean, na.rm=TRUE)
-  mean.normal = apply(normals[selected.probes, normal.samples], 1, mean, na.rm=TRUE)
+  mean.tumor = apply(tumors[selected.probes, tumor.samples, drop=FALSE], 1, mean, na.rm=TRUE)
+  mean.normal = apply(normals[selected.probes, normal.samples, drop=FALSE], 1, mean, na.rm=TRUE)
   mean.diff = mean.tumor - mean.normal
   selected.probes = names(mean.diff[compare(mean.diff, diff.cutoff)])
   selected.probes = selected.probes[!is.na(selected.probes)]
@@ -370,7 +356,7 @@ doMethylationAnalysis = function(tumors,
   # Correlation between methylation and expression data filtering
   cors = c()
   if (length(selected.probes) > 0) {
-    temp = matrix(tumors[selected.probes, tumor.samples], nrow=length(selected.probes), byrow=TRUE)
+    temp = matrix(tumors[selected.probes, tumor.samples, drop=FALSE], nrow=length(selected.probes), byrow=TRUE)
     rownames(temp) = selected.probes
     colnames(temp) = tumor.samples
 	# gene.region determines whether gene region information is available for the
@@ -398,18 +384,9 @@ doMethylationAnalysis = function(tumors,
   affected.samples.unpaired = list()
   affected.samples.paired = list()
   if (length(selected.probes) > 0) {
-    tt = tumors[selected.probes, tumor.samples]
-    tn = normals[selected.probes, normal.samples]
-    if (length(selected.probes) == 1) {
-      tt = matrix(tumors[selected.probes, tumor.samples], nrow=1, byrow=TRUE)
-      colnames(tt) = tumor.samples
-      rownames(tt) = selected.probes
-      
-      tn = matrix(normals[selected.probes, normal.samples], nrow=1, byrow=TRUE)
-      colnames(tn) = normal.samples
-      rownames(tn) = selected.probes
-    }
-  
+    tt = tumors[selected.probes, tumor.samples, drop=FALSE]
+    tn = normals[selected.probes, normal.samples, drop=FALSE]
+    
     wilcox = runMethComp(tt, tn, selected.probes)
     wilcox.bh = list(unpaired=p.adjust(wilcox$unpaired, method="BH"), paired=p.adjust(wilcox$paired, method="BH"))
     selected.probes.unpaired = names(wilcox.bh$unpaired[which(wilcox.bh$unpaired < wilcox.cutoff)])
@@ -417,24 +394,24 @@ doMethylationAnalysis = function(tumors,
 	# Check which samples are affected by the difference in methylation. 
 	# The direction in methylation has to be reversed for regulatory probes
 	nonbody = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
-													 tumors[selected.probes.unpaired, ], 
-													 normals[selected.probes.unpaired, ], 
+													 tumors[selected.probes.unpaired, , drop=FALSE], 
+													 normals[selected.probes.unpaired, , drop=FALSE], 
 													 regulation=switch(regulation, up="down", down="up"), 
 													 stddev, FALSE)
 	body = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
-													 tumors[selected.probes.unpaired, ], 
-													 normals[selected.probes.unpaired, ], 
+													 tumors[selected.probes.unpaired, , drop=FALSE], 
+													 normals[selected.probes.unpaired, , drop=FALSE], 
 													 regulation=regulation, 
 													 stddev, FALSE)
 	affected.samples.unpaired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
 	nonbody = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
-													 tumors[selected.probes.paired, ], 
-													 normals[selected.probes.paired, ], 
+													 tumors[selected.probes.paired, , drop=FALSE], 
+													 normals[selected.probes.paired, , drop=FALSE], 
 						 							 regulation=switch(regulation, up="down", down="up"), 
 													 stddev, TRUE)
 	body = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
-													 tumors[selected.probes.paired, ], 
-													 normals[selected.probes.paired, ], 
+													 tumors[selected.probes.paired, , drop=FALSE], 
+													 normals[selected.probes.paired, , drop=FALSE], 
 													 regulation=regulation, 
 													 stddev, TRUE)
 	affected.samples.paired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
@@ -453,13 +430,13 @@ doMethylationAnalysis = function(tumors,
   for (gene in genes) {
     # Get all probes for that gene
     geneProbes = gene2probe[[gene]]
-    if (length(geneProbes) > 1) {
+    #if (length(geneProbes) > 1) {
       # If there is more than one probe, get the rownames 
-      allProbes = rownames(probe.annotation[geneProbes, ])
-    } else {
-      # Else the probe name has to be created again
-      allProbes = c(paste(probe.annotation[geneProbes, "chrom"], probe.annotation[geneProbes, "pos"], sep="_"))
-    }
+      allProbes = rownames(probe.annotation[geneProbes, , drop=FALSE])
+    #} else {
+    #  # Else the probe name has to be created again
+    #  allProbes = c(paste(probe.annotation[geneProbes, "chrom"], probe.annotation[geneProbes, "pos"], sep="_"))
+    #}
     
     temp = length(geneProbes)
     if (temp > 0) {
