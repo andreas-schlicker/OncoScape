@@ -219,13 +219,11 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
   exprs.genes = rownames(exprs.data)
   commonSamples = intersect(colnames(cnv.data), colnames(exprs.data))
 	
-  cors = c()
-  n = c()
-  for (x in intersect(genes, exprs.genes)) {
-    cors = c(cors, cor(exprs.data[x, commonSamples], cnv.data[x, commonSamples], method="spearman", use="pairwise.complete.obs"))
-    n = c(n, x)
+  cors = rep(NA, times=length(intersect(genes, exprs.genes)))
+  names(cors) = intersect(genes, exprs.genes)
+  for (x in names(cors)) {
+    cors[x] = cor(exprs.data[x, commonSamples], cnv.data[x, commonSamples], method="spearman", use="pairwise.complete.obs")
   }
-  names(cors) = n
   
   return(cors)
 }
