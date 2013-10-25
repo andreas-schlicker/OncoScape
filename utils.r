@@ -159,9 +159,6 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			rownames(tumors) = features
 		}
 		
-		normal.means = apply(normals, 1, mean, na.rm=TRUE)
-		normal.sd = apply(normals, 1, sd, na.rm=TRUE)
-		
 		common = intersect(features, intersect(rownames(tumors), rownames(normals)))
 		missing = setdiff(features, common)
 		
@@ -178,23 +175,18 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			affected = apply(deltaMat - stddev*deltaSd, 1, function(x) { sum(compare(x, 0)) })
 			# Get the names of the samples that are affected
 			samples = apply(deltaMat - stddev*deltaSd, 1, function(x) { names(which(compare(x, 0))) })
-			
-			# Compare each tumor to the matched normal value, leave margin of "stddev" times the standard deviation over all normal samples 
-			#affected = sapply(common, function(x) { sum(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) })) })
-			# Get the names of the samples that are affected
-			#samples = lapply(common, function(x) { names(which(sapply(matched.samples, function(y) { compare(tumors[x, y], normals[x, y]+stddev*normal.sd[x]) }))) })
-			# Delete the feature name to only retain the sample name 
-			#samples = lapply(1:length(common), function(x) { gsub(paste(".", common[x], sep=""), "", samples[[x]]) })
-			#names(samples) = common
 		} else {
 			# Number of samples to normalize with
 			normFactor = ncol(tumors)
 			
+			normal.means = apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
+			normal.sd = apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
+			
 			# Number of affected samples
-			affected = sapply(common, function(x) { sum(compare(tumors[x, , drop=FALSE], normal.means[x]+stddev*normal.sd[x])) })
+			affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
 			# Which samples are affected by feature
 			# No need to cut off the feature name here
-			samples = lapply(common, function(x) { names(which(compare(tumors[x, , drop=FALSE], normal.means[x]+stddev*normal.sd[x]))) })
+			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
 			names(samples) = common
 		}
 		
