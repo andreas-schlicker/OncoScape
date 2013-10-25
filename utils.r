@@ -7,7 +7,7 @@
 # default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
 # returns: TRUE/FALSE
 geneExpressed = function(exprs.mat, gene, exprs.threshold=0, cutoff=0.5) {
-	(sum(sapply(exprs.mat[gene, ], function(x) { x > exprs.threshold })) / ncol(exprs.mat)) >= cutoff
+	(sum(sapply(exprs.mat[gene, , drop=FALSE], function(x) { x > exprs.threshold })) / ncol(exprs.mat)) >= cutoff
 }
 
 # Convenience function to test a number of genes whether they are expressed or not
@@ -171,12 +171,7 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			normFactor = length(matched.samples)
 			
 			# All differences 
-			deltaMat = tumors[common, matched.samples] - normals[common, matched.samples]
-			if (!is.matrix(deltaMat)) {
-				deltaMat = matrixFromVector(deltaMat)
-				rownames(deltaMat) = rownames(tumors)
-			}
-			
+			deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
 			# Per gene standard deviation of the differences
 			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
 			# An sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
@@ -196,10 +191,10 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			normFactor = ncol(tumors)
 			
 			# Number of affected samples
-			affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
+			affected = sapply(common, function(x) { sum(compare(tumors[x, , drop=FALSE], normal.means[x]+stddev*normal.sd[x])) })
 			# Which samples are affected by feature
 			# No need to cut off the feature name here
-			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
+			samples = lapply(common, function(x) { names(which(compare(tumors[x, , drop=FALSE], normal.means[x]+stddev*normal.sd[x]))) })
 			names(samples) = common
 		}
 		
