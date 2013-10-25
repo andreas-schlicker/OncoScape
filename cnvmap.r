@@ -179,31 +179,34 @@ mapGenes2CN = function (genes, cnData, cases=FALSE, genome="hg18") {
 # normals is a aCGH data matrix with samples in the columns and genes in the rows
 # Returns a named list with results from paired tests.
 runCGHComp = function(tumors, normals) {
-  # Samples from tumors that have a matched normal
-  tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
-  # Retain only the normal samples for which there is a tumor
-  temp = normals[, tumors.matchedsamples]
-  # Rename normal samples to reflect the state
-  if (!is.matrix(temp)) {
-	  temp = matrixFromVector(temp)
-  }
-  normals = temp
-  colnames(normals) = paste(colnames(normals), "normal", sep="_")
-
-  tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
-  names(tumors.groups) = c(colnames(tumors), colnames(normals))
-
-  # Run paired Wilcoxon tests
-  if (nrow(tumors) > 1) {
-    inpMat = cbind(tumors[, tumors.matchedsamples], normals)
-  } else {
-    inpMat = matrixFromVector(c(tumors[, tumors.matchedsamples], normals))
-    rownames(inpMat) = rownames(tumors)
-    colnames(inpMat) = c(tumors.matchedsamples, colnames(normals))
-  }
-  pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
- 
-  return(list(paired=pairedwilcox.p))
+	if (!is.matrix(tumors)) {
+		tumors = matrixFromVector(tumors)
+	}
+	if (!is.matrix(normals)) {
+		normals = matrixFromVector(normals)
+	}
+	
+	# Samples from tumors that have a matched normal
+	tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
+	# Retain only the normal samples for which there is a tumor
+	normals = normals[, tumors.matchedsamples, drop=FALSE]
+	# Rename normal samples to reflect the state
+	colnames(normals) = paste(colnames(normals), "normal", sep="_")
+	
+	tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
+	names(tumors.groups) = c(colnames(tumors), colnames(normals))
+	
+	# Run paired Wilcoxon tests
+	#if (nrow(tumors) > 1) {
+	inpMat = cbind(tumors[, tumors.matchedsamples, drop=FALSE], normals)
+	#} else {
+	#	inpMat = matrixFromVector(c(tumors[, tumors.matchedsamples], normals))
+	#	rownames(inpMat) = rownames(tumors)
+	#	colnames(inpMat) = c(tumors.matchedsamples, colnames(normals))
+	#}
+	pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
+	
+	return(list(paired=pairedwilcox.p))
 }
 
 # Calculates correlation between copy number and expression of the corresponding genes.
@@ -285,30 +288,23 @@ doCnvAnalysis = function(tumors, normals, genes, exprs, samples=NULL, wilcox.cut
   # tumor - normal
   # --> diff < 0 implies that the gene has higher mean copy number values in normals than in tumors
   # --> diff > 0 implies that the gene has lower mean copy number values in normals than in tumors
-  cgh.mean.tumor = apply(tumors[selected.genes, tumor.samples], 1, mean, na.rm=TRUE)
-  cgh.mean.normal = apply(normals[selected.genes, normal.samples], 1, mean, na.rm=TRUE)
+  cgh.mean.tumor = apply(tumors[selected.genes, tumor.samples, drop=FALSE], 1, mean, na.rm=TRUE)
+  cgh.mean.normal = apply(normals[selected.genes, normal.samples, drop=FALSE], 1, mean, na.rm=TRUE)
   cgh.mean.diff = cgh.mean.tumor - cgh.mean.normal
   selected.genes = names(cgh.mean.diff[which(compare(cgh.mean.diff, diff.cutoff))])
   
   cgh.cors = list()
   if (length(selected.genes) > 0) {
-    temp = matrix(tumors[selected.genes, tumor.samples], nrow=length(selected.genes), byrow=TRUE)
-    rownames(temp) = selected.genes
-    colnames(temp) = tumor.samples
-    cgh.cors = list(paired=corCnvExprs(temp, exprs, selected.genes))
+    cgh.cors = list(paired=corCnvExprs(tumors[selected.genes, tumor.samples, drop=FALSE], 
+									   exprs, selected.genes))
     selected.genes = names(cgh.cors$paired[which(cgh.cors$paired >= cor.min & cgh.cors$paired <= cor.max)])
   }
   
   cgh.wilcox.bh = list()
   cgh.wilcox = list()
   if (length(selected.genes) > 0) {
-    temp = matrix(tumors[selected.genes, tumor.samples], nrow=length(selected.genes), byrow=TRUE)
-    rownames(temp) = selected.genes
-    colnames(temp) = tumor.samples
-    temp.n = matrix(normals[selected.genes, normal.samples], nrow=length(selected.genes), byrow=TRUE)
-    rownames(temp.n) = selected.genes
-    colnames(temp.n) = normal.samples
-    cgh.wilcox = runCGHComp(temp, temp.n)
+    cgh.wilcox = runCGHComp(tumors[selected.genes, tumor.samples, drop=FALSE], 
+							normals[selected.genes, normal.samples, drop=FALSE])
     # Multiple testing correction
     cgh.wilcox.bh = list(paired=p.adjust(cgh.wilcox$paired, method="BH"))
     selected.genes = names(cgh.wilcox.bh$paired[which(cgh.wilcox.bh$paired < wilcox.cutoff)])
