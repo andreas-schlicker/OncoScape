@@ -40,7 +40,7 @@ filterDGEList = function(dgel, count.cutoff, sample.cutoff=0.1, relative=TRUE) {
 	keep = (rowSums(cpm(dgel) > count.cutoff) / ncol(dgel)) >= sample.cutoff
 	dgel = dgel[keep, ]
 	# Correct library size after filtering
-	dgel$samples$lib.size <- colSums(dgel$counts)
+	dgel$samples$lib.size = colSums(dgel$counts)
 	
 	dgel
 }
@@ -109,7 +109,6 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 	if (!is.matrix(tumors)) {
 		tumors = matrixFromVector(tumors)
 	}
-	
 	if (!is.matrix(normals)) {
 		normals = matrixFromVector(normals)
 	}
@@ -117,16 +116,8 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 	if (paired) {
 		# Samples from tumors that have a matched normal
 		matchedsamples = intersect(colnames(tumors), colnames(normals))
-		tumors = tumors[, matchedsamples]
-		normals = normals[, matchedsamples]
-	}
-	
-	if (!is.matrix(tumors)) {
-		tumors = matrixFromVector(tumors)
-	}
-	
-	if (!is.matrix(normals)) {
-		normals = matrixFromVector(normals)
+		tumors = tumors[, matchedsamples, drop=FALSE]
+		normals = normals[, matchedsamples, drop=FALSE]
 	}
 	
 	# Rename normal samples to reflect the state
