@@ -159,7 +159,7 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			rownames(tumors) = features
 		}
 		
-		common = intersect(features, intersect(rownames(tumors), rownames(normals)))
+		common = intersect(rownames(tumors), intersect(features, rownames(normals)))
 		missing = setdiff(features, common)
 		
 		if (paired) {
@@ -171,23 +171,24 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
 			# Per gene standard deviation of the differences
 			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
-			# An sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
-			affected = apply(deltaMat - stddev*deltaSd, 1, function(x) { sum(compare(x, 0)) })
+			
 			# Get the names of the samples that are affected
 			samples = apply(deltaMat - stddev*deltaSd, 1, function(x) { names(which(compare(x, 0))) })
+			# A sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
+			affected = unlist(lapply(samples, function(x) { length(x) }))
 		} else {
 			# Number of samples to normalize with
 			normFactor = ncol(tumors)
+			# Calculate comparison value across normals
+			normal.cmp = apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
+					   + stddev*apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
 			
-			normal.means = apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
-			normal.sd = apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
-			
-			# Number of affected samples
-			affected = sapply(common, function(x) { sum(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x])) })
 			# Which samples are affected by feature
 			# No need to cut off the feature name here
-			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.means[x]+stddev*normal.sd[x]))) })
+			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.cmp[x]))) })
 			names(samples) = common
+			# Count affected samples
+			affected = unlist(lapply(samples, function(x) { length(x) }))
 		}
 		
 		# Add all missing features and resort
