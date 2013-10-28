@@ -260,7 +260,7 @@ genesAndProbes = function(tumors, normals, genes, probe.annotation) {
 	common.probes = intersect(rownames(tumors), rownames(normals))
 	
 	# Does the probe in the given row map to any of the genes of interest?
-	found.gene = unlist(lapply(lapply(probe.annotation[, "gene"], 
+	found.gene = unlist(lapply(lapply(probe.annotation[common.probes, "gene"], 
 									  function(x) { unlist(unique(str_split(x, ";"))) } ), 
 							   function(y) { any(y %in% genes) }))
 	
