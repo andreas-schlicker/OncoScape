@@ -9,38 +9,40 @@
 # Returns a named list with results from paired and un-paired tests.
 
 runMethComp = function(tumors, normals, probes) {
-  if (!is.matrix(tumors)) {
-	  tumors = matrixFromVector(tumors)
-	  rownames(tumors) = probes
-  }
-  if (!is.matrix(normals)) {
-	  normals = matrixFromVector(normals)
-	  rownames(normals) = probes
-  }
-  # Samples from tumors that have a matched normal
-  tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
-  # Retain only the normal samples for which there is a tumor
-  
-  normals = normals[, tumors.matchedsamples, drop=FALSE]
-  
-  # Rename normal samples to reflect the state
-  colnames(normals) = paste(colnames(normals), "normal", sep="_")
-
-  tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
-  names(tumors.groups) = c(colnames(tumors), colnames(normals))
-
-  # Which probes map to any of the genes?
-  selected.probes = intersect(intersect(rownames(tumors), rownames(normals)), probes)
-
-  inpMat = cbind(tumors[selected.probes, tumors.matchedsamples, drop=FALSE], normals[selected.probes, , drop=FALSE])
-  # Run paired Wilcoxon tests
-  pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
-  
-  inpMat = cbind(tumors[selected.probes, , drop=FALSE], normals[selected.probes, , drop=FALSE])
-  # Run un-paired Wilcoxon tests
-  wilcox.p = doWilcox(inpMat=inpMat, groups=tumors.groups)
-
-  return(list(unpaired=wilcox.p, paired=pairedwilcox.p))
+	if (!is.matrix(tumors)) {
+		tumors = matrixFromVector(tumors)
+		rownames(tumors) = probes
+	}
+	if (!is.matrix(normals)) {
+		normals = matrixFromVector(normals)
+		rownames(normals) = probes
+	}
+	
+	# Samples from tumors that have a matched normal
+	tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
+	# Rename the normal samples 
+	colnames(normals) = paste(colnames(normals), "normal", sep="_")
+	
+	# Filter unknown probes
+	selected.probes = intersect(intersect(rownames(tumors), rownames(normals)), probes)
+	
+	## Unpaired test
+	tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
+	names(tumors.groups) = c(colnames(tumors), colnames(normals))
+	
+	inpMat = cbind(tumors[selected.probes, , drop=FALSE], normals[selected.probes, , drop=FALSE])
+	# Run un-paired Wilcoxon tests
+	wilcox.p = doWilcox(inpMat=inpMat, groups=tumors.groups)
+	
+	## Paired test
+	# Retain only the normal samples for which there is a tumor
+	normals = normals[, tumors.matchedsamples, drop=FALSE]
+		
+	inpMat = cbind(tumors[selected.probes, tumors.matchedsamples, drop=FALSE], normals[selected.probes, , drop=FALSE])
+	# Run paired Wilcoxon tests
+	pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
+	
+	return(list(unpaired=wilcox.p, paired=pairedwilcox.p))
 }
 
 # Impute missing values 
