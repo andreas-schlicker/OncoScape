@@ -116,8 +116,13 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 	if (paired) {
 		# Samples from tumors that have a matched normal
 		matchedsamples = intersect(colnames(tumors), colnames(normals))
-		tumors = tumors[, matchedsamples, drop=FALSE]
-		normals = normals[, matchedsamples, drop=FALSE]
+		if (length(matchedsamples) > 0) {
+			tumors = tumors[, matchedsamples, drop=FALSE]
+			normals = normals[, matchedsamples, drop=FALSE]
+		} else {
+			paired = FALSE
+			warning("No paired expression samples found. Performing unpaired analysis!")
+		}
 	}
 	
 	# Rename normal samples to reflect the state
