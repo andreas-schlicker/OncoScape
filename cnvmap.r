@@ -228,6 +228,33 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
   return(cors)
 }
 
+##' Calculates correlation between copy number and expression of the corresponding genes and 
+##' the corresponding p-value.
+##' Correlation is calculated using all samples contained in both data matrices
+##' @param cnv.data should be a matrix with genes in rows and samples in columns
+##' @param exprs.data should be a matrix with probes in rows and samples in columns
+##' @param genes should be a character vector giving the genes to test
+##' @return list with "htest" object; the correlation value is in the "estimate" slot and the p-value in the
+##' "p.value" slot.
+##' @author Andreas Schlicker
+corTestCnvExprs = function(cnv.data, exprs.data, genes) {
+	# All genes contained in the expression data
+	exprs.genes = rownames(exprs.data)
+	commonSamples = intersect(colnames(cnv.data), colnames(exprs.data))
+	
+	cors = vector("list", length(intersect(genes, exprs.genes)))
+	names(cors) = intersect(genes, exprs.genes)
+	for (x in names(cors)) {
+		cors[[x]] = cor.test(exprs.data[x, commonSamples], cnv.data[x, commonSamples], 
+						   method="spearman", 
+						   use="pairwise.complete.obs",
+						   exact=FALSE)
+	}
+	
+	cors
+}
+
+
 # For each gene, summarizes evidence for significant copy number alterations and the correlation with gene expression. 
 # cnv.wilcox is a vector with p-values (preferably multiple-testing corrected) for copy number difference between tumor and normal
 # cnv.diff is a vector giving the value mean(cnv.tumor) - mean(cnv.normal) for each gene
@@ -293,9 +320,15 @@ doCnvAnalysis = function(tumors, normals, genes, exprs, samples=NULL, wilcox.cut
   
   cgh.cors = list()
   if (length(selected.genes) > 0) {
-    cgh.cors = list(paired=corCnvExprs(tumors[selected.genes, tumor.samples, drop=FALSE], 
+    cgh.cors = list(paired=corTestCnvExprs(tumors[selected.genes, tumor.samples, drop=FALSE], 
 									   exprs, selected.genes))
-    selected.genes = names(cgh.cors$paired[which(cgh.cors$paired >= cor.min & cgh.cors$paired <= cor.max)])
+    pvalues = unlist(lapply(cgh.cors$paired, function(x) { x$p.value }))
+	fdrs = p.adjust(pvalues, method="BH")
+	cors = unlist(lapply(cgh.cors$paired, function(x) { x$estimate }))
+	cgh.cors = list(paired=data.frame(cor=cors, p.value=pvalues, FDR=fdrs))
+	rownames(cgh.cors$paired) = str_replace(rownames(cgh.cors$paired), "\\.rho", "")
+	selected.genes = names(fdrs)[which(fdrs < wilcox.cutoff)]
+    #selected.genes = names(cgh.cors$paired[which(cgh.cors$paired >= cor.min & cgh.cors$paired <= cor.max)])
   }
   
   cgh.wilcox.bh = list()
