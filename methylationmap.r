@@ -36,7 +36,7 @@ runMethComp = function(tumors, normals, probes) {
 	
 	## Paired test
 	# Retain only the normal samples for which there is a tumor
-	normals = normals[, paste(tumors.matchedsamples, "normal", sep="_"), drop=FALSE]
+	normals = normals[, intersect(colnames(normals), paste(tumors.matchedsamples, "normal", sep="_")), drop=FALSE]
 		
 	inpMat = cbind(tumors[selected.probes, tumors.matchedsamples, drop=FALSE], normals[selected.probes, , drop=FALSE])
 	# Run paired Wilcoxon tests
@@ -80,27 +80,57 @@ cleanMethylation = function(meth.data, impute=TRUE, no.na=(ncol(meth.data)-1)) {
 # exprs.data should be a matrix with probes in rows and samples in columns
 # meth.probes should be a character vector giving the probes to test
 corMethExprs = function(meth.data, gene2probe, exprs.data, meth.probes) {
-  # All genes contained in the expression data
-  exprs.genes = rownames(exprs.data)
-  commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
+	# All genes contained in the expression data
+	exprs.genes = rownames(exprs.data)
+	commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
 	
-  cors = numeric(length(meth.probes))
-  n = character(length(meth.probes))
-  j = 0
-  for (gene in names(gene2probe)) {
-	for (probe in intersect(gene2probe[[gene]], meth.probes)) {  
-		j = j + 1
-		cors[j] = cor(exprs.data[gene, commonSamples], 
-					  meth.data[probe, commonSamples], 
-					  method="spearman")
-		n[j] = probe
-    }
-  }
-  cors = cors[1:j]
-  names(cors) = n[1:j]
-  
-  cors
+	cors = numeric(length(meth.probes))
+	j = 0
+	for (gene in names(gene2probe)) {
+		for (probe in intersect(gene2probe[[gene]], meth.probes)) {  
+			j = j + 1
+			cors[j] = cor(exprs.data[gene, commonSamples], 
+						  meth.data[probe, commonSamples], 
+						  method="spearman")
+			names(cors)[j] = probe
+		}
+	}
+	
+	cors[1:j]
 }
+
+##' Calculates correlation between methylation probes and expression of the corresponding genes and the
+##' corresponding p-value.
+##' Correlation is calculated using all samples contained in both data matrices
+##' @param meth.data should be a matrix with probes in rows and samples in columns
+##' @param gene2probe named list mapping genes to probes. Names are gene symbols and values are vectors
+##' with probe accessions
+##' @param exprs.data should be a matrix with probes in rows and samples in columns
+##' @param meth.probes should be a character vector giving the probes to test
+##' @return list with "htest" object; the correlation value is in the "estimate" slot and the p-value in the
+##' "p.value" slot.
+##' @author Andreas Schlicker
+corTestMethExprs = function(meth.data, gene2probe, exprs.data, meth.probes) {
+	# All genes contained in the expression data
+	exprs.genes = rownames(exprs.data)
+	commonSamples = intersect(colnames(meth.data), colnames(exprs.data))
+	
+	cors = vector("list", length(meth.probes))
+	j = 0
+	for (gene in intersect(names(gene2probe), exprs.genes)) {
+		for (probe in intersect(gene2probe[[gene]], meth.probes)) {  
+			j = j + 1
+			cors[[j]] = cor.test(exprs.data[gene, commonSamples], 
+								 meth.data[probe, commonSamples], 
+								 method="spearman", 
+								 exact=FALSE)
+			names(cors)[j] = paste(probe, gene, sep="_")
+		}
+	}
+	
+	cors[1:j]
+}
+
 
 # Calculates correlation between methylation probes and expression of the corresponding genes.
 # This method deals with non-unique mappings of probes to genes by testing all
@@ -118,14 +148,12 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 	exprs.genes = rownames(exprs.data)
 	samps = intersect(colnames(meth.data), colnames(exprs.data))
 	
-	# Correlations and their names
+	# Correlations
 	cors = list()
-	n = list()
 	# Length of temporary vectors
 	LENGTH = 1000
 	# Temporary vectors
 	temp1 = numeric(LENGTH)
-	temp2 = character(LENGTH)
 	# Counter for current element in temporary vector
 	i = 1
 	# Counter of temporary vectors
@@ -137,8 +165,6 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 		if (i > LENGTH) {
 			cors[[j]] = temp1
 			temp1 = numeric(LENGTH)
-			n[[j]] = temp2
-			temp2 = character(LENGTH)
 			j = j + 1
 			i = 1
 		}
@@ -160,20 +186,82 @@ corMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c
 			# If there is expression data, save the data in the temporary vectors
 			if (gs[[1]][1] %in% exprs.genes) {
 				temp1[i] = cor(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman")
-				temp2[i] = paste(x, gene_region, sep="_")
+				names(temp1)[i] = paste(x, gene_region, sep="_")
 				i = i + 1
 			}
 		}
 	}
 	# Save the last values
 	cors[[j]] = temp1[1:(i-1)]
-	n[[j]] = temp2[1:(i-1)]
-	# And build the return value
-	cors = unlist(cors)
-	names(cors) = unlist(n)
+	
+	unlist(cors)
+}
+
+##' Calculates correlation between methylation probes and expression of the corresponding genes and 
+##' the corresponding p-values.
+##' This method deals with non-unique mappings of probes to genes by testing all of them.
+##' Correlation is calculated using all samples contained in both data matrices
+##' @param meth.data should be a matrix with probes in rows and samples in columns
+##' @param meth.ann has to be an annotation matrix mapping probes to genes;
+##' probe ids in 1st column, gene ids and gene regions with colnames "gene" and "gene_region", respectively.
+##' gene ids have to match ids used in the expression data.
+##' @param exprs.data should be a matrix with probes in rows and samples in columns
+##' @param meth.probes should be a character vector giving the probes to test
+##' @return list with "htest" object; the correlation value is in the "estimate" slot and the p-value in the
+##' "p.value" slot.
+##' @author Andreas Schlicker
+corTestMethExprsMult = function(meth.data, meth.ann, exprs.data, meth.probes, filt=c("all", "low", "high")) {
+	filt = match.arg(filt)
+	
+	exprs.genes = rownames(exprs.data)
+	samps = intersect(colnames(meth.data), colnames(exprs.data))
+	
+	# Correlations
+	cors = list()
+	# Length of temporary vectors
+	LENGTH = 1000
+	# Temporary vectors
+	temp1 = vector("list", LENGTH)
+	# Counter for current element in temporary vector
+	i = 1
+	
+	for (x in meth.probes) {
+		# No space left in temporary vectors
+		# Save the vectors in the lists
+		if (i > LENGTH) {
+			cors = c(cors, temp1)
+			temp1 = vector("list", LENGTH)
+			i = 1
+		}
+		
+		# Potentially filter samples
+		if (filt == "low") {
+			samps = colnames(meth.data)[which(meth.data[x, commonSamples] < 0.3)]
+		} else if (filt == "high") {
+			samps = colnames(meth.data)[which(meth.data[x, commonSamples] > 0.7)]
+		}
+		# Get all genes and gene regions and combine them
+		genes = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), "gene"], ";"))
+		regions = unlist(strsplit(meth.ann[which(meth.ann[, 1] == x), "gene_region"], ";"))
+		genes_regions = unique(paste(genes, regions, sep="_"))
+		
+		# Cycle through all gene-region combinations
+		for (gene_region in genes_regions) {
+			gs = strsplit(gene_region, "_")
+			# If there is expression data, save the data in the temporary vectors
+			if (gs[[1]][1] %in% exprs.genes) {
+				temp1[[i]] = cor.test(exprs.data[gs[[1]][1], samps], meth.data[x, samps], method="spearman", exact=FALSE)
+				names(temp1)[i] = paste(x, gene_region, sep="_")
+				i = i + 1
+			}
+		}
+	}
+	# Save the last values
+	cors = c(cors, temp1[1:(i-1)])
 	
 	cors
 }
+
 
 # Calculates the ratio of probes per gene that are significantly negatively associated with expression and all probes for that gene.
 # meth.wilcox is a vector with p-values (preferably multiple-testing corrected) for methylation difference between tumor and normal
@@ -362,18 +450,36 @@ doMethylationAnalysis = function(tumors,
     # gene.region determines whether gene region information is available for the
 	# methylation probes. If so, body probes are treated differently from other probes.
 	if (!gene.region) {
-    	cors = corMethExprs(temp, gene2probe, exprs, selected.probes)
-    	selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
+		cors = corTestMethExprs(temp, gene2probe, exprs, selected.probes)
+		pvalues = unlist(lapply(cors, function(x) { x$p.value }))
+		fdrs = p.adjust(pvalues, method="BH")
+		cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), 
+					 "any",
+					 unlist(lapply(cors, function(x) { x$estimate })),
+					 pvalues, fdrs)
+	    colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val", "pvalue", "FDR")
+		rownames(cors) = str_replace(rownames(cors), "\\.rho", "")
+			 
+		#selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
+		selected.probes = unique(names(fdrs)[fdrs < wilcox.cutoff])
     } else {
-		cors = corMethExprsMult(temp, probe.annotation, exprs, selected.probes)
+		cors = corTestMethExprsMult(temp, probe.annotation, exprs, selected.probes)
 		# The correlation names have the form <meth.probe_gene_gene.region>
 		# Split everything up into matrix form:
 		# meth.probe, gene, gene.region, correlation
-		cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), cors)
-		colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val")
+		pvalues = unlist(lapply(cors, function(x) { x$p.value }))
+		fdrs = p.adjust(pvalues, method="BH")
+		cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), 
+					 unlist(lapply(cors, function(x) { x$estimate })),
+					 pvalues, fdrs)
+		colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val", "pvalue", "FDR")
+		rownames(cors) = str_replace(rownames(cors), "\\.rho", "")
 		cors[, "meth.probe"] = as.character(cors[, "meth.probe"])
-		selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
-								cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
+		#selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
+		#						cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
+		selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] > 0 & cors[, "pvalue"] < wilcox.cutoff), "meth.probe"],
+								cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] < 0 & cors[, "pvalue"] < wilcox.cutoff), "meth.probe"])
+		#selected.probes = cors[which(cors[, "FDR"] < wilcox.cutoff), "meth.probe"]
 	}
   }
   
