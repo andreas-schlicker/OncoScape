@@ -36,7 +36,7 @@ runMethComp = function(tumors, normals, probes) {
 	
 	## Paired test
 	# Retain only the normal samples for which there is a tumor
-	normals = normals[, tumors.matchedsamples, drop=FALSE]
+	normals = normals[, paste(tumors.matchedsamples, "normal", sep="_"), drop=FALSE]
 		
 	inpMat = cbind(tumors[selected.probes, tumors.matchedsamples, drop=FALSE], normals[selected.probes, , drop=FALSE])
 	# Run paired Wilcoxon tests
