@@ -162,9 +162,13 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 		common = intersect(rownames(tumors), intersect(features, rownames(normals)))
 		missing = setdiff(features, common)
 		
+		matched.samples = intersect(colnames(tumors), colnames(normals))
+		if (length(matched.samples) == 0) {
+			paired = FALSE
+			warning("No paired samples found. Performing unpaired analysis!")
+		}
 		if (paired) {
 			# Which tumor samples have a matched normal?
-			matched.samples = intersect(colnames(tumors), colnames(normals))
 			normFactor = length(matched.samples)
 			
 			# All differences 
