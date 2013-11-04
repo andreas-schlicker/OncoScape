@@ -539,7 +539,7 @@ doMethylationAnalysis = function(tumors,
     
     temp = length(geneProbes)
     if (temp > 0) {
-      gene.scores$unpaired[gene] = length(intersect(allProbes, selected.probes.unpaired)) / temp
+	  gene.scores$unpaired[gene] = length(intersect(allProbes, selected.probes.unpaired)) / temp
       gene.scores$paired[gene] = length(intersect(allProbes, selected.probes.paired)) / temp
 	  samples$unpaired[[gene]] = unique(unlist(affected.samples.unpaired$samples[intersect(allProbes, selected.probes.unpaired)]))
 	  samples$paired[[gene]] = unique(unlist(affected.samples.paired$samples[intersect(allProbes, selected.probes.paired)]))
