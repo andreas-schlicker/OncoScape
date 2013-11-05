@@ -232,3 +232,31 @@ sampleUnion = function(samples, use=NULL) {
 	
 	res
 }
+
+##' Imputes missing data using the impute.knn function as implemented 
+##' in the "impute" library. If this library is not installed or impute=FALSE, all
+##' probes with missing values will be removed.
+##' @param data.data matrix with features in rows and samples in columns
+##' @param impute boolean indicating whether missing values should be imputed
+##' @param no.na threshold giving the number of missing values from which on a
+##' feature will be removed. By default, a feature is only removed if its value is
+##' missing for all samples.
+##' @return cleaned matrix
+##' @author Andreas Schlickers
+cleanMatrix = function(data.mat, impute=TRUE, no.na=ncol(data.mat)) {
+	# How many values are missing for each probe?
+	no.nas = apply(data.mat, 1, function(x) { sum(is.na(x)) })
+	if (!require(impute) || !impute) {
+		print("Could not load library \"impute\". All probes with missing values will be removed")
+		# Remove probes with missing values
+		exclude = which(no.nas > 0)
+		meth.data.imputed = list(data=data.mat[-exclude, ])
+	} else {
+		# Probes to be excluded
+		exclude = which(no.nas > no.na)
+		# Impute missing values
+		meth.data.imputed = impute.knn(data.mat[-exclude, ])
+	}
+	
+	meth.data.imputed
+}

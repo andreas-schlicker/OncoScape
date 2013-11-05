@@ -7,7 +7,6 @@
 # normals is a methylation data matrix with samples in the columns and probes in the rows
 # genes is a vector of genes to be tested; gene ids have to match the first column of the probe annotation matrix
 # Returns a named list with results from paired and un-paired tests.
-
 runMethComp = function(tumors, normals, probes) {
 	if (!is.matrix(tumors)) {
 		tumors = matrixFromVector(tumors)
@@ -43,33 +42,6 @@ runMethComp = function(tumors, normals, probes) {
 	pairedwilcox.p = doWilcox(inpMat=inpMat, matchedSamples=tumors.matchedsamples)
 	
 	return(list(unpaired=wilcox.p, paired=pairedwilcox.p))
-}
-
-# Impute missing values 
-# This method will impute missing data using the impute.knn function as implemented 
-# in the "impute" library. If this library is not installed or impute=FALSE, all
-# probes with missing values will be removed.
-# meth.data is the matrix with methylation probes in rows and samples in columns
-# impute is a boolean indicating whether missing values should be imputed
-# no.na is the threshold giving the number of missing values from which on a
-# probe will be removed. By default, a probe is only removed if its value is
-# missing for all samples.
-cleanMethylation = function(meth.data, impute=TRUE, no.na=(ncol(meth.data)-1)) {
-  # How many values are missing for each probe?
-  no.nas = apply(meth.data, 1, function(x) { sum(is.na(x)) })
-  if (!require(impute) || !impute) {
-    print("Could not load library \"impute\". All probes with missing values will be removed")
-    # Remove probes with missing values
-    exclude = which(no.nas > 0)
-    meth.data.imputed = list(data=meth.data[-exclude, ])
-  } else {
-    # Probes to be excluded
-    exclude = which(no.nas > no.na)
-    # Impute missing values
-    meth.data.imputed = impute.knn(meth.data[-exclude, ])
-  }
-  
-  return(meth.data.imputed)
 }
 
 # Calculates correlation between methylation probes and expression of the corresponding genes.
