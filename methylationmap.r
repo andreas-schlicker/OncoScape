@@ -339,38 +339,66 @@ summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleas
 ##' any of the genes of interest and map these genes to their probes.
 ##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
 ##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
-##' @param genes vector with gene symbols 
+##' @param genes vector with gene symbols
 ##' @param probe.annotation methylation probe annotation matrix. The first column has to be the 
 ##' probe id, "gene" column giving gene IDs (possibily separated by ";")
+##' @param gene2probe nested named list that maps probes to regions of genes; names of the outer list
+##' map to gene IDs used in "genes"; names of inner lists are gene regions
+##' @param regions vector with gene regions to remove; default: "" to keep probes mapping to any region
+##' @param snps probes with SNPs in any of these locations will be removed; default: any SNP in the probe
+##' or target region
 ##' @return named list with two entries ("selected.probes" and "gene2probe")
 ##' @author Andreas Schlicker
-genesAndProbes = function(tumors, normals, genes, probe.annotation) {
-	require(stringr) || stop("Could not load package \"stringr\"!")
+filterProbes = function(tumors, normals, 
+						genes, probe.annotation, gene2probe,
+						regions=c(""), 
+						snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
+	require(stringr) || stop("Could not load required package \"stringr\"!")
+					
+	# Probes in the two data set that also have annotation
+	common.probes = intersect(rownames(tumors), intersect(rownames(normals), rownames(probe.annotation)))
 	
-	common.probes = intersect(rownames(tumors), rownames(normals))
-	
-	# Does the probe in the given row map to any of the genes of interest?
-	found.gene = unlist(lapply(lapply(probe.annotation[common.probes, "gene"], 
-									  function(x) { unlist(unique(str_split(x, ";"))) } ), 
-							   function(y) { any(y %in% genes) }))
-	
-	# All probes that map to any of the genes
-	selected.probes = intersect(common.probes, 
-			rownames(probe.annotation)[found.gene])
-	
-	# Mapping of genes to the probes
-	gene2probe = list()
-	for (probe in selected.probes) {
-		temp = unique(str_split(probe.annotation[probe, "gene"], ";")[[1]])
-		for (gene in temp) { 
-			if (is.null(gene2probe[[gene]])) {
-				gene2probe[[gene]] = c()
+	# Get probe to gene and region mapping for all genes 
+	res.g2p = gene2probe[genes]
+	# If analysis should be restricted to some gene regions, remove all others 
+	if (regions != "") {
+		for (x in names(res.g2p)) {
+			for (n in intersect(names(res.g2p[[x]]), regions)) {
+				res.g2p[[x]][[n]] = NULL 
 			}
-			gene2probe[[gene]] = c(gene2probe[[gene]], probe)
 		}
 	}
 	
-	list(selected.probes=selected.probes, gene2probe=gene2probe)
+	# All probes that we look at
+	res.selprobes = intersect(unique(unlist(unlist(res.g2p))), common.probes)
+	
+	# We need to filter out probes containing SNPs in the given categories
+	if (length(snps) > 0) {
+		# Find all probes that have a SNP in at least one category
+		excl.snps = apply(infinium450.probe.ann[res.selprobes, snps, drop=FALSE], 1, function(x) { any(x) })
+		excl.snps = names(excl.snps)[excl.snps]
+		
+		# That's the remining probes
+		res.selprobes = setdiff(res.selprobes, excl.snps)
+		# Clean up the gene to probe mapping as well
+		for (p in excl.snps) {
+			# All genes and their regions with the current probe
+			gene_regions = str_split(probe.annotation[p, "Symbol_region_unique"], ";")[[1]]
+			for (gene_region in gene_regions) {
+				# Get the gene and the region, remove the probe; if there is no probe left, delete the region
+				gs = str_split(gene_region, "_")[[1]]
+				gene = gs[1]
+				region = gs[2]
+				
+				res.g2p[[gene]][[region]] = setdiff(res.g2p[[gene]][[region]], p)
+				if (length(res.g2p[[gene]][[region]]) == 0) {
+					res.g2p[[gene]][[region]] == NULL
+				}
+			}
+		}
+	}
+	
+	list(selected.probes=res.selprobes, gene2probe=res.g2p)
 }
 
 ##' Performs all steps of the methylation analysis. First, probes that don't meet the
