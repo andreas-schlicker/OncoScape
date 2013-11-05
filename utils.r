@@ -260,3 +260,12 @@ cleanMatrix = function(data.mat, impute=TRUE, no.na=ncol(data.mat)) {
 	
 	meth.data.imputed
 }
+
+##' Calculates the difference in mean between tumors and normals. 
+##' @param tumors matrix with tumor data
+##' @param normals matrix with normal data
+##' @return vector with differences
+##' @author Andreas Schlicker
+meanDiff = function(tumors, normals) {
+	apply(tumors, 1, mean, na.rm=TRUE) - apply(normals, 1, mean, na.rm=TRUE)
+}
