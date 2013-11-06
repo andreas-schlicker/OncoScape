@@ -274,6 +274,8 @@ doCnvAnalysis = function(tumors,
 ##' @param regulation either "down" or "up" for finding genes that are regulated in the corresponding direction; default="down"
 ##' @param stddev how many standard deviations does a sample have to be away from the mean to be considered affected; default=1
 ##' @param paired boolean indicating whether paired or unpaired analysis was performed; default: TRUE
+##' @return named list with scores for genes ("scores"), number of affected samples ("summary") and the lists of affected samples ("samples")
+##' @author Andreas Schlicker
 summarizeCnv = function(tumors,
 						normals,
 						cnv.analysis, 
