@@ -64,24 +64,6 @@ filterProbes = function(tumors, normals,
 	list(selected.probes=res.selprobes, gene2probe=res.g2p)
 }
 
-##' Compares methylation data of tumor and normal samples using unpaired Wilcoxon test.
-##' @param tumors methylation matrix with samples in the columns and probes in the rows
-##' @param normals methylation matrix with samples in the columns and probes in the rows
-##' @return data.frame with two columns containing results from paired and un-paired tests
-##' @author Andreas Schlicker
-runMethComp = function(tumors, normals) {
-	# Samples from tumors that have a matched normal
-	tumors.matchedsamples = intersect(colnames(tumors), colnames(normals))
-	# Rename the normal samples 
-	colnames(normals) = paste(colnames(normals), "normal", sep="_")
-	
-	## Unpaired test
-	tumors.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
-	names(tumors.groups) = c(colnames(tumors), colnames(normals))
-	# Run un-paired Wilcoxon tests
-	doWilcox(inpMat=cbind(tumors, normals), groups=tumors.groups)
-}
-
 ##' Calculates Spearman correlation between methylation probes and expression of the corresponding genes and 
 ##' the corresponding p-values. Correlation is calculated using all samples contained in both data matrices.
 ##' @param meth.data matrix with probes in rows and samples in columns. Correlations will be computed 
@@ -93,8 +75,6 @@ runMethComp = function(tumors, normals) {
 ##' @return data.frame with 4 columns: probe, gene, correlation, p.value
 ##' @author Andreas Schlicker
 corMethExprs = function(meth.data, meth.ann, exprs.data) {
-	# Genes with expression data
-	exprs.genes = rownames(exprs.data)
 	# Samples with methylation and expression data
 	samps = intersect(colnames(meth.data), colnames(exprs.data))
 	
@@ -104,26 +84,32 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 	LENGTH = 100
 	# Temporary vectors
 	temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
-					   cor=double(LENGTH), p.value=double(LENGTH), 
+					   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH), 
 					   stringsAsFactors=FALSE)
 	# Counter for current element in temporary vector
 	i = 1
 	
 	for (x in rownames(meth.data)) {
-		# No space left in temporary list
+		# No space left in temporary data.frame
 		if (i > LENGTH) {
 			cors = c(cors, temp1)
 			temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
-							   cor=double(LENGTH), p.value=double(LENGTH), 
+							   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH),
 							   stringsAsFactors=FALSE)
 			i = 1
 		}
-		
-		# Get all genes and gene regions and combine them
+	
+		# Genes with expression data
+		exprs.genes = rownames(exprs.data)
+		# Get all genes this probe maps to
 		genes = intersect(unlist(strsplit(meth.ann[x, "Gene_symbols_unique"], ";")),
 						  exprs.genes)
 		for (gene in genes) {
-			tempCor = cor.test(exprs.data[gene, samps], meth.data[x, samps], method="spearman", exact=FALSE)
+			tempCor = cor.test(exprs.data[gene, samps], 
+							   meth.data[x, samps], 
+							   method="spearman", 
+							   use="pairwise.complete.obs",
+							   exact=FALSE)
 			temp1[i, ] = c(x, gene, tempCor$estimate, tempCor$p.value)
 		}
 	}
@@ -132,6 +118,10 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 	
 	res = do.call("rbind", cors)
 	colnames(res) = c("probe", "gene", "cor", "cor.p")
+	res[, "cor"] = as.numeric(res[, "cor"])
+	res[, "cor.p"] = as.numeric(res[, "cor.p"])
+	
+	res
 }
 
 ##' Performs all steps of the methylation analysis. First, probes that don't meet the
@@ -147,13 +137,15 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 ##' @return named list with three entries: diff: difference in average methylation between tumors and
 ##' normals; cors: correlation values between methylation and expression, with p-values and FDR;
 ##' wilcox: paired and unpaired Wilcoxon p-values and FDRs for each probe
+##' @param paired boolean indicating whether doing paired or unpaired analysis; default: FALSE
 ##' @author Andreas Schlicker
 doMethylationAnalysis = function(tumors, 
 								 normals, 
 								 exprs, 
 								 probe.annotation,
 								 selected.probes,
-								 samples=NULL) {
+								 samples=NULL, 
+								 paired.wilcox=FALSE) {
 	if (!is.null(samples)) {
 	  	tumors = tumors[, intersect(samples, colnames(tumors)), drop=FALSE]
     	normals = normals[, intersect(samples, colnames(normals)), drop=FALSE]
@@ -174,108 +166,9 @@ doMethylationAnalysis = function(tumors,
   	cors = corMethExprs(tumors, probe.annotation, exprs)
 	
 	# Wilcoxon test
-	wilcox = runMethComp(tumors, normals)
+	wilcox = doWilcox(tumors, normals, paired.wilcox)
 	
 	list(diffs=mean.diff, cors=cors, wilcox=wilcox)
-	
-	# gene.region determines whether gene region information is available for the
-	# methylation probes. If so, body probes are treated differently from other probes.
-	#if (!gene.region) {
-	#	cors = corTestMethExprs(temp, gene2probe, exprs, selected.probes)
-	#	pvalues = unlist(lapply(cors, function(x) { x$p.value }))
-	#	fdrs = p.adjust(pvalues, method="BH")
-	#	cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), 
-	#				 "any",
-	#				 unlist(lapply(cors, function(x) { x$estimate })),
-	#				 pvalues, fdrs)
-	#   colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val", "pvalue", "FDR")
-	#	rownames(cors) = str_replace(rownames(cors), "\\.rho", "")
-	#		 
-	#	#selected.probes = names(cors[which(cors <= cor.max & cors >= cor.min)])
-	#	selected.probes = unique(names(fdrs)[fdrs < wilcox.cutoff])
-    #} else {
-	#	cors = corTestMethExprsMult(temp, probe.annotation, exprs, selected.probes)
-	#	# The correlation names have the form <meth.probe_gene_gene.region>
-	#	# Split everything up into matrix form:
-	#	# meth.probe, gene, gene.region, correlation
-	#	pvalues = unlist(lapply(cors, function(x) { x$p.value }))
-	#	fdrs = p.adjust(pvalues, method="BH")
-	#	cors = cbind(data.frame(do.call("rbind", strsplit(names(cors), "_"))), 
-	#				 unlist(lapply(cors, function(x) { x$estimate })),
-	#				 pvalues, fdrs)
-	#	colnames(cors) = c("meth.probe", "gene", "gene.region", "cor.val", "pvalue", "FDR")
-	#	rownames(cors) = str_replace(rownames(cors), "\\.rho", "")
-	#	cors[, "meth.probe"] = as.character(cors[, "meth.probe"])
-	#	#selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] <= cor.max & cors[, "cor.val"] >= cor.min), "meth.probe"],
-	#	#						cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] <= (-1*cor.min) & cors[, "cor.val"] >= (-1*cor.max)), "meth.probe"])
-	#	selected.probes = union(cors[which(cors[, "gene.region"] != "Body" & cors[, "cor.val"] > 0 & cors[, "pvalue"] < wilcox.cutoff), "meth.probe"],
-	#							cors[which(cors[, "gene.region"] == "Body" & cors[, "cor.val"] < 0 & cors[, "pvalue"] < wilcox.cutoff), "meth.probe"])
-	#	#selected.probes = cors[which(cors[, "FDR"] < wilcox.cutoff), "meth.probe"]
-	#}
-  	#}
-  
-#	if (length(selected.probes) > 0) {
-#	    tt = tumors[selected.probes, tumor.samples, drop=FALSE]
-#    	tn = normals[selected.probes, normal.samples, drop=FALSE]
-#    
-#	    wilcox = runMethComp(tt, tn, selected.probes)
-#    	wilcox.bh = list(unpaired=p.adjust(wilcox$unpaired, method="BH"), paired=p.adjust(wilcox$paired, method="BH"))
-#    	selected.probes.unpaired = names(wilcox.bh$unpaired[which(wilcox.bh$unpaired < wilcox.cutoff)])
-#    	selected.probes.paired = names(wilcox.bh$paired[which(wilcox.bh$paired < wilcox.cutoff)])
-#		# Check which samples are affected by the difference in methylation. 
-#		nonbody = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
-#												 tumors[selected.probes.unpaired, , drop=FALSE], 
-#											     normals[selected.probes.unpaired, , drop=FALSE], 
-#											 	 regulation=switch(regulation, up="down", down="up"), 
-#												 stddev, FALSE)
-#		body = countAffectedSamples(intersect(selected.probes.unpaired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
-#			  								  tumors[selected.probes.unpaired, , drop=FALSE], 
-#											  normals[selected.probes.unpaired, , drop=FALSE], 
-#											  regulation=regulation, 
-#										  	  stddev, FALSE)
-#		affected.samples.unpaired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
-#		nonbody = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] != "Body"), "meth.probe"]), 
-#													 tumors[selected.probes.paired, , drop=FALSE], 
-#													 normals[selected.probes.paired, , drop=FALSE], 
-#						 							 regulation=switch(regulation, up="down", down="up"), 
-#													 stddev, TRUE)
-#		body = countAffectedSamples(intersect(selected.probes.paired, cors[which(cors[, "gene.region"] == "Body"), "meth.probe"]), 
-#													 tumors[selected.probes.paired, , drop=FALSE], 
-#													 normals[selected.probes.paired, , drop=FALSE], 
-#													 regulation=regulation, 
-#													 stddev, TRUE)
-#		affected.samples.paired = list(summary=rbind(nonbody$summary, body$summary), samples=c(nonbody$samples, body$samples))
-#  	}
-  
-#  gene.scores = list(unpaired=rep(0.0, length(genes)), paired=rep(0.0, length(genes))) 
-#  names(gene.scores$unpaired) = genes
-#  names(gene.scores$paired) = genes
-#  samples = list(unpaired=list(), paired=list())
-#  summary = list(unpaired=matrix(0, ncol=2, nrow=length(genes)), paired=matrix(0, ncol=2, nrow=length(genes)))
-#  rownames(summary$unpaired) = genes
-#  colnames(summary$unpaired) = c("absolute", "relative")
-#  rownames(summary$paired) = genes
-#  colnames(summary$paired) = c("absolute", "relative")
-#  nTumors = ncol(tumors)
-#  for (gene in genes) {
-#    # Get all probes for that gene
-#    geneProbes = gene2probe[[gene]]
-#	allProbes = rownames(probe.annotation[geneProbes, , drop=FALSE])
-#    
-#    temp = length(geneProbes)
-#    if (temp > 0) {
-#	  gene.scores$unpaired[gene] = length(intersect(allProbes, selected.probes.unpaired)) / temp
-#      gene.scores$paired[gene] = length(intersect(allProbes, selected.probes.paired)) / temp
-#	  samples$unpaired[[gene]] = unique(unlist(affected.samples.unpaired$samples[intersect(allProbes, selected.probes.unpaired)]))
-#	  samples$paired[[gene]] = unique(unlist(affected.samples.paired$samples[intersect(allProbes, selected.probes.paired)]))
-#	  summary$unpaired[gene, "absolute"] = length(samples$unpaired[[gene]])
-#	  summary$unpaired[gene, "relative"] = summary$unpaired[gene, "absolute"] / nTumors
-#	  summary$paired[gene, "absolute"] = length(samples$paired[[gene]])
-#	  summary$paired[gene, "relative"] = summary$paired[gene, "absolute"] / nTumors
-#    }
-#  }
-#  
-#  return(list(scores=gene.scores, diffs=mean.diff, cors=cors, wilcox=wilcox, corrected=wilcox.bh, samples=samples, summary=summary))
 }
 
 
@@ -292,18 +185,22 @@ doMethylationAnalysis = function(tumors,
 ##' @param regulation either "down" or "up" for finding genes that are regulated in the corresponding direction; default="down"
 ##' @param gene.region boolean indicating whether gene region annotation should be taken into account; default=TRUE
 ##' @param stddev how many standard deviations does a sample have to be away from the mean to be considered affected; default=1
-significantProbes = function(tumors,
-				 			 normals,
-							 meth.analysis,
-							 gene2probe,
-							 probe2gene,
-							 genes, 
-							 wilcox.FDR=0.05, 
-							 cor.FDR=0.05,
-							 diff.cutoff=0.1, 
-							 regulation=c("down", "up"),
-							 gene.region=TRUE,
-							 stddev=1) { 
+##' @return named list with scores for genes ("scores"), number of affected samples ("summary") and the lists of affected samples ("samples")
+##' @author Andreas Schlicker
+summarizeMethylation = function(tumors,
+				 				normals,
+							 	meth.analysis,
+							 	gene2probe,
+							 	probe2gene,
+							 	genes, 
+							 	wilcox.FDR=0.05, 
+							 	cor.FDR=0.05,
+							 	diff.cutoff=0.1, 
+							 	regulation=c("down", "up"),
+							 	gene.region=TRUE,
+							 	stddev=1,
+								threshold=0, 
+								score=c("atleast", "absolute")) { 
 	regulation = match.arg(regulation)
 	
 	# Get the correct comparison function
@@ -313,8 +210,8 @@ significantProbes = function(tumors,
 	
 	# Correlation significance filter
 	# Multiple testing correction
-	meth.analysis$cors = cbind(meth.analysis$cors, cor.FDR=p.adjust(meth.analysis$cors$cor.p, method="BH"))
-	significant.cors = meth.analysis$cors[which(meth.analysis$cors$cor.FDR <= cor.FDR), ]
+	meth.analysis$cors = cbind(meth.analysis$cors, cor.FDR=p.adjust(meth.analysis$cors[, "cor.p"], method="BH"))
+	significant.cors = meth.analysis$cors[which(meth.analysis$cors[, "cor.FDR"] <= cor.FDR), ]
 	
 	if (!gene.region) {
 		significant.cors = cbind(significant.cors[which(significant.cors[, "cor"] < 0), ], region="rest")
@@ -324,15 +221,15 @@ significantProbes = function(tumors,
 		for (probe in unique(significant.cors[, "probe"])) {
 			bodyGenes = probe2gene[[probe]][["Body"]]
 			if (!is.null(bodyGenes)) {
-				tsc.body = rbind(tsc, significant.cors[which(significant.cors[, "probe"] == probe & 
-															 significant.cors[, "cor"] > 0 & 
-															 significant.cors[, "gene"] %in% bodyGenes), ])
+				tsc.body = rbind(tsc.body, significant.cors[which(significant.cors[, "probe"] == probe & 
+															 	  significant.cors[, "cor"] > 0 & 
+															 	  significant.cors[, "gene"] %in% bodyGenes), ])
 			}
 			otherGenes = unlist(probe2gene[[probe]][setdiff(names(probe2gene[[probe]]), c("Body"))])
 			if (!is.null(otherGenes)) {
-				tsc.rest = rbind(tsc, significant.cors[which(significant.cors[, "probe"] == probe & 
-													 		 significant.cors[, "cor"] < 0 & 
-															 significant.cors[, "gene"] %in% otherGenes), ])
+				tsc.rest = rbind(tsc.rest, significant.cors[which(significant.cors[, "probe"] == probe & 
+													 		 	  significant.cors[, "cor"] < 0 & 
+															 	  significant.cors[, "gene"] %in% otherGenes), ])
 			}
 		}
 		significant.cors = rbind(cbind(tsc.body, region="body"), cbind(tsc.rest, region="rest"))
@@ -344,7 +241,7 @@ significantProbes = function(tumors,
 								 wilcox.FDR=p.adjust(meth.analysis$wilcox[significant.probes], method="BH")[names(meth.analysis$wilcox)])
 	# Mean difference filter 
 	significant.probes = intersect(significant.probes, names(meth.analysis$diffs)[compare(meth.analysis$diffs, diff.cutoff)])
-	significant.probes = significant.probes[!is.na(significant.probes)]
+	#significant.probes = significant.probes[!is.na(significant.probes)]
 	
 	# Wilcoxon significance filter
 	significant.probes = intersect(significant.probes, rownames(meth.analysis$wilcox)[meth.analysis$wilcox$wilcox.FDR <= wilcox.FDR])
@@ -402,7 +299,7 @@ significantProbes = function(tumors,
 ##' exceeding the threshold.
 ##' @return numeric vector with the gene scores
 ##' @author Andreas Schlicker
-summarizeMethylation = function(methylation, genes, threshold=0, score=c("atleast", "absolute")) {
+combineMethylation = function(methylation, genes, threshold=0, score=c("atleast", "absolute")) {
 	score = match.arg(score)
 	score = switch(score, atleast=TRUE, absolute=FALSE)
 	
