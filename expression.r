@@ -97,15 +97,14 @@ diffExpr = function(dgel, design) {
 }
 
 ##' Compares expression data of tumor and normal samples.
-##' The function will run (un-)paired Wilcoxon tests. Pairing of samples
-##' is determined by matching sample names in the tumors and normals matrices.
-##' The function uses doWilcox() as defined for the analysis of methylation data!
+##' The function will run (un-)paired Wilcoxon tests.
 ##' @param tumors expression matrix with samples in the columns and genes in the rows
 ##' @param normals expression matrix with samples in the columns and genes in the rows
 ##' @param paired boolean, whether paired or unpaired test is to be performed
-##' @return names character vector with results from tests
+##' @return named list with two elements: "exprs" matrix with average expression across tumors
+##' and normals, and "wilcox" being a vector with Wilcoxon test p-values
 ##' @author Andreas Schlicker
-runExprComp = function(tumors, normals, paired=TRUE) {
+doExprAnalysis = function(tumors, normals, paired=TRUE) {
 	if (!is.matrix(tumors)) {
 		tumors = matrixFromVector(tumors)
 	}
@@ -113,47 +112,34 @@ runExprComp = function(tumors, normals, paired=TRUE) {
 		normals = matrixFromVector(normals)
 	}
 	
-	if (paired) {
-		# Samples from tumors that have a matched normal
-		matchedsamples = intersect(colnames(tumors), colnames(normals))
-		if (length(matchedsamples) > 0) {
-			tumors = tumors[, matchedsamples, drop=FALSE]
-			normals = normals[, matchedsamples, drop=FALSE]
-		} else {
-			paired = FALSE
-			warning("No paired expression samples found. Performing unpaired analysis!")
-		}
+	if (paired && length(intersect(colnames(tumors), colnames(normals))) == 0) {
+		paired = FALSE
+		warning("No paired expression samples found. Performing unpaired analysis!")
 	}
 	
-	# Rename normal samples to reflect the state
-	colnames(normals) = paste(colnames(normals), "normal", sep="_")
-	
-	sample.groups = c(rep(1, times=ncol(tumors)), rep(2, times=ncol(normals)))
-	names(sample.groups) = c(colnames(tumors), colnames(normals))
-	
-	# Run Wilcoxon tests
-	if (paired) {
-		wilcox.p = doWilcox(cbind(tumors, normals), matchedSamples=matchedsamples)
-	} else {
-		wilcox.p = doWilcox(cbind(tumors, normals), groups=sample.groups)
-	}
-	
-	data.frame(tumor.exprs=apply(tumors, 1, mean, na.rm=TRUE),
-			   normal.exprs=apply(normals, 1, mean, na.rm=TRUE),
-			   p.value=wilcox.p,
-			   BH=p.adjust(wilcox.p, method="BH"))
+	list(exprs=cbind(tumor=apply(tumors, 1, mean, na.rm=TRUE),
+		 			 normal=apply(normals, 1, mean, na.rm=TRUE)),
+		 wilcox=doWilcox(tumors, normals, paired))
 }
 
 ##' Tests for differential expression between tumors and normals.
+##' @param tumors expression matrix with samples in the columns and genes in the rows
+##' @param normals expression matrix with samples in the columns and genes in the rows
+##' @param expr.analysis list returned by doExprAnalysis() 
 ##' @param genes character vector of gene symbols
-##' @param exprs.res data.frame with expression differences as returned by runExprComp()
+##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
 ##' @param regulation either "down" or "up", whether down- or upregulation in tumors
 ##' should be scored
-##' @param wilcox.cutoff FDR threshold below which a difference is considered to be
-##' significant
+##' @param paired boolean indicating whether paired or unpaired analysis was performed; default: TRUE
 ##' @return names list with the results
 ##' @author Andreas Schlicker
-doExprAnalysis = function(genes, exprs.res, regulation=c("down", "up"), wilcox.cutoff=0.05) {
+summarizeExpr = function(tumors, 
+						 normals,
+						 expr.analysis,
+						 genes, 
+						 wilcox.FDR=0.05,
+						 regulation=c("down", "up"),
+						 paired=TRUE) {
 	regulation = match.arg(regulation)
 	
 	# Get the correct comparison function
@@ -161,11 +147,15 @@ doExprAnalysis = function(genes, exprs.res, regulation=c("down", "up"), wilcox.c
 	# If we want to find genes with lower expression in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
+	expr.analysis$wilcox = cbind(wilcox.p=expr.analysis$wilcox, wilcox.FDR=p.adjust(expr.analysis$wilcox, method="BH")[names(expr.analysis$wilcox)])
+	significant.genes = rownames(expr.analysis$wilcox)[expr.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR]
+	significant.genes = intersect(significant.genes, names(which(apply(expr.analysis, 1, function(x) { compare(x["tumor"], x["normal"])} ))))
+	
 	gene.scores = rep(0, length(genes))
 	names(gene.scores) = genes
-	hits = apply(exprs.res[intersect(rownames(exprs.res), genes), ], 
-				 1, function(x) { x["BH"] < wilcox.cutoff & compare(x["tumor.exprs"], x["normal.exprs"]) })
-	gene.scores[names(hits)[hits]] = 1
+	gene.scores[significant.genes] = 1
 	
-	gene.scores
+	affected.sampels = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, paired)
+	
+	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples)
 }
