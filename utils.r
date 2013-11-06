@@ -1,23 +1,25 @@
-# Tests whether the given gene is expressed in at least in the given percentage of samples
-# exprs.mat: expression matrix with genes in rows and samples in columns
-# gene: gene to test
-# exprs.threshold: threshold above which a gene is considered to be expressed; default: 0;
-# only sensible for log-ratio expression data
-# cutoff: percent samples that need to show expression for the gene to be considered expressed; 
-# default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
-# returns: TRUE/FALSE
+##' Tests whether the given gene is expressed in at least the given percentage of samples
+##' @param exprs.mat expression matrix with genes in rows and samples in columns
+##' @param gene gene to test
+##' @param exprs.threshold threshold above which a gene is considered to be expressed; default: 0;
+##' only sensible for log-ratio expression data
+##' @param cutoff percent samples that need to show expression for the gene to be considered expressed; 
+##' default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
+##' @return TRUE/FALSE
+##' @author Andreas Schlicker
 geneExpressed = function(exprs.mat, gene, exprs.threshold=0, cutoff=0.5) {
 	(sum(sapply(exprs.mat[gene, , drop=FALSE], function(x) { x > exprs.threshold })) / ncol(exprs.mat)) >= cutoff
 }
 
-# Convenience function to test a number of genes whether they are expressed or not
-# exprs.mat: expression matrix with genes in rows and samples in columns
-# gene: gene to test
-# exprs.threshold: threshold above which a gene is considered to be expressed; default: 0;
-# only sensible for log-ratio expression data
-# cutoff: percent samples that need to show expression for the gene to be considered expressed; 
-# default: 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
-# returns: a boolean vector
+##' Convenience function to test for a number of genes whether they are expressed or not
+##' @param exprs.mat expression matrix with genes in rows and samples in columns
+##' @param gene genes to test
+##' @param exprs.threshold threshold above which a gene is considered to be expressed; default: 0;
+##' only sensible for log-ratio expression data
+##' @param cutoff percent samples that need to show expression for the gene to be considered expressed; 
+##' @param default 0.5, i.e. considered expressed if expression in 50% of samples is > exprs.threshold
+##' @return a boolean vector
+##' @author Andreas Schlicker
 genesExpressed = function(exprs.mat, genes, exprs.threshold=0, cutoff=0.5) { 
 	sapply(genes, function(gene) { geneExpressed(exprs.mat, gene, exprs.threshold, cutoff) })
 }
@@ -43,33 +45,37 @@ doWilcox = function(mat1, mat2, paired=TRUE) {
 		   function(x) { tryCatch(wilcox.test(mat1[x, ], mat2[x, ], paired=paired, exact=FALSE)$p.value, error = function(e) NA) })
 }
 
-# Perform Bartlett's test on each row of the given matrix.
-# Groups should be a named vector indicating which samples belong to the  
-# different groups.
+##' Perform Bartlett's test on each row of the given matrix.
+##' @param inpMat data matrix with features in rows and samples in columns
+##' @param groups a factor indicating which samples belong to the different groups
+##' @return vector with p-values
+##' @author Andreas Schlicker
 doBartlett = function(inpMat, groups=NULL) {
-  bartlett.p = apply(inpMat, 1, function(x) { tryCatch(bartlett.test(x, g=groups)$p.value, error = function(e) NA) })
-  
-  return(bartlett.p)
+  apply(inpMat, 1, function(x) { tryCatch(bartlett.test(x, g=groups)$p.value, error = function(e) NA) })
 }
 
-# Perform Levene's test on each row of the given matrix.
-# groups is a factor indicating which samples belong to the different groups.
-# location one of "median", "mean", "trim.mean"
+##' Perform Levene's test as implemented in the lawstat package on each row of the given matrix.
+##' @param inpMat data matrix with features in rows and samples in columns
+##' @param groups a factor indicating which samples belong to the different groups
+##' @param location one of "median", "mean", "trim.mean"
+##' @return vector with p-values
+##' @author Andreas Schlicker
 doLevene = function(inpMat, groups, location=c("median", "mean", "trim.mean")) {
 	# Load the package for performing Levene's test
-	require(lawstat)
-	# Get the right 
+	require(lawstat) || stop("Couldn't load the \"lawstat\" package.")
+	# Get the right location
 	location = match.arg(location)
 	
-	levene.p = apply(inpMat, 1, function(x) { tryCatch(levene.test(x, g=groups)$p.value, error = function(e) NA) })
-  
-	return(levene.p)
+	apply(inpMat, 1, function(x) { tryCatch(levene.test(x, g=groups)$p.value, error = function(e) NA) })
 }
 
-# Calculate prioritization score by summing over the rows
-# x should be a matrix with data types in the columns
+##' Calculate prioritization score by summing over the rows.
+##' NA values are ignored.
+##' @param mat matrix with data types in the columns
+##' @return vector with final scores
+##' @author Andreas Schlicker
 dataTypeScore = function(mat) {
-  apply(mat, 1, sum, na.rm=TRUE) 
+  rowSums(mat, na.rm=TRUE) 
 }
 
 greaterThan = function(x, y) { x > y }
