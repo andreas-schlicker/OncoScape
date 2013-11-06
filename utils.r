@@ -22,29 +22,25 @@ genesExpressed = function(exprs.mat, genes, exprs.threshold=0, cutoff=0.5) {
 	sapply(genes, function(gene) { geneExpressed(exprs.mat, gene, exprs.threshold, cutoff) })
 }
 
-# Perform Wilcoxon tests on the given matrix.
-# If the matchedSamples argument is defined, a paired test is performed. In this
-# case, the first length(matchedSamples) number of columns need to contain group
-# 1 and the remaining columns samples in group 2. Samples in groups 1
-# and 2 need to be in matched order.
-# If a non-paired test is to be performed, groups should be a named vector of
-# 1 and 2 indicating which samples belong to group 1 and 2, respectively.
-doWilcox = function(inpMat, matchedSamples=NULL, groups=NULL) {
-  # Paired Wilcoxon test?
-  paired = !is.null(matchedSamples)
- 
-  # Get the two groups of samples
-  if (paired) {
-    group1 = 1:length(matchedSamples) 
-    group2 = (length(matchedSamples)+1):ncol(inpMat)
-  } else {
-    group1 = which(colnames(inpMat) %in% names(groups[groups == 1]))
-    group2 = which(colnames(inpMat) %in% names(groups[groups == 2]))
-  }
-  
-  wilcox.p = apply(inpMat, 1, function(x) { tryCatch(wilcox.test(x[group1], x[group2], paired=paired, exact=FALSE)$p.value, error = function(e) NA) })
-  
-  return(wilcox.p)
+##' Perform paired or unpaired Wilcoxon tests.
+##' Tests are only performed on common features.
+##' @param mat1 data matrix with features in rows and samples in columns
+##' @param mat2 data matrix with features in rows and samples in columns
+##' @param paired boolean indicating if a paired test is to performed; default: TRUE
+##' To run paired tests, only samples that occur in both matrices are used.
+##' For unpaired tests, all samples are used.
+##' @return named vector with p-values, NA if no p-value could be calculated
+##' @author Andreas Schlicker
+doWilcox = function(mat1, mat2, paired=TRUE) {
+	# Get the two groups of samples
+	if (paired) {
+		common.samples = intersect(colnames(mat1), colnames(mat2))
+		mat1 = mat1[, common.samples, drop=FALSE] 
+		mat2 = mat2[, common.samples, drop=FALSE]
+	}
+	
+	sapply(intersect(rownames(mat1), rownames(mat2)), 
+		   function(x) { tryCatch(wilcox.test(mat1[x, ], mat2[x, ], paired=paired, exact=FALSE)$p.value, error = function(e) NA) })
 }
 
 # Perform Bartlett's test on each row of the given matrix.
@@ -261,11 +257,13 @@ cleanMatrix = function(data.mat, impute=TRUE, no.na=ncol(data.mat)) {
 	meth.data.imputed
 }
 
-##' Calculates the difference in mean between tumors and normals. 
+##' Calculates the difference in mean between tumors and normals.
+##' Filters out all features not contained in both matrices.
 ##' @param tumors matrix with tumor data
 ##' @param normals matrix with normal data
 ##' @return vector with differences
 ##' @author Andreas Schlicker
 meanDiff = function(tumors, normals) {
-	apply(tumors, 1, mean, na.rm=TRUE) - apply(normals, 1, mean, na.rm=TRUE)
+	common.features = intersect(rownames(tumors), rownames(normals))
+	apply(tumors[common.features, , drop=FALSE], 1, mean, na.rm=TRUE) - apply(normals[common.features, , drop=FALSE], 1, mean, na.rm=TRUE)
 }
