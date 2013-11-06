@@ -198,7 +198,8 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
 	cnv.data = cnv.data[, commonSamples, drop=FALSE]
 	exprs.data = exprs.data[, commonSamples, drop=FALSE]
 	
-	cors = data.frame(gene=character(length(genes)), cor=numeric(length(genes)), cor.p=numeric(length(genes)), stringsAsFactors=FALSE)
+	cors = data.frame(gene=character(length(genes)), cor=rep(NA, times=length(genes)), 
+				      cor.p=rep(NA, times=length(genes)), stringsAsFactors=FALSE)
 	rownames(cors) = genes
 	for (x in common.genes) {
 		tempCor = cor.test(exprs.data[x, ], 
