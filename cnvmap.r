@@ -219,8 +219,8 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
 ##' Run copy number alteration analysis for each gene. 
 ##' @param tumors matrix with tumor copy number matrix, genes in rows and samples in columns
 ##' @param normals matrix with normal sample copy number matrix, genes in rows and samples in columns
-##' @param genes character vector of genes
 ##' @param exprs expression data matrix, genes in rows and samples in columns
+##' @param genes character vector of genes; default: NULL (test all genes in tumors)
 ##' @param samples vector with sample names to use for the analysis. If this is NULL, all samples will
 ##' be used; default: NULL
 ##' @param paired.wilcox boolean indicating whether doing paired or unpaired analysis; default: TRUE
@@ -228,8 +228,8 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
 ##' @author Andreas Schlicker
 doCnvAnalysis = function(tumors, 
 						 normals, 
-						 genes, 
 						 exprs, 
+						 genes=NULL,
 						 samples=NULL,
 						 paired.wilcox=TRUE) {
   
@@ -240,7 +240,10 @@ doCnvAnalysis = function(tumors,
 	    tumor.samples = intersect(samples, colnames(tumors))
     	normal.samples = intersect(samples, colnames(normals))
   	}
-	  
+
+	if (is.null(genes)) {
+		genes = rownames(tumors)
+	}	
   	selected.genes = intersect(genes, intersect(rownames(tumors), rownames(normals)))
   	if (length(selected.genes) == 0) {
 	  	warning("No gene of interest is contained in copy number data of both tumors and normals!")
@@ -267,7 +270,7 @@ doCnvAnalysis = function(tumors,
 ##' @param tumors matrix with tumor copy number matrix, genes in rows and samples in columns
 ##' @param normals matrix with normal sample copy number matrix, genes in rows and samples in columns
 ##' @param cnv.analysis list returned by doCnvAnalysis()
-##' @param genes character vector of genes
+##' @param genes character vector of genes; default: NULL (test all genes in tumors)
 ##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
 ##' @param cor.FDR significance cut-off for correlation FDR; default=0.05
 ##' @param diff.cutoff copy number difference needs to be smaller or greater than this cut-off to be considered significant; default=-0.1
@@ -279,7 +282,7 @@ doCnvAnalysis = function(tumors,
 summarizeCnv = function(tumors,
 						normals,
 						cnv.analysis, 
-						genes, 
+						genes=NULL, 
 						wilcox.FDR=0.05, 
 						cor.FDR=0.05, 
 						diff.cutoff=-0.1, 
@@ -292,7 +295,11 @@ summarizeCnv = function(tumors,
 	# If we want to find genes with higher copy number in tumors get the greaterThan function
 	# If we want to find genes with lower copy number in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
-					
+	
+	if (is.null(genes)) {
+		genes = rownames(tumors)
+	}	
+	
 	## Integrate results
 	# Correlation significance filter
 	cnv.analysis$cors = cbind(cnv.analysis$cors, cor.FDR=p.adjust(cnv.analysis$cors[, "cor.p"], method="BH"))
