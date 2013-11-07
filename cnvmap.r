@@ -220,7 +220,7 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
 ##' @param tumors matrix with tumor copy number matrix, genes in rows and samples in columns
 ##' @param normals matrix with normal sample copy number matrix, genes in rows and samples in columns
 ##' @param exprs expression data matrix, genes in rows and samples in columns
-##' @param genes character vector of genes; default: NULL (test all genes in tumors)
+##' @param genes character vector of genes; default: NULL (test all genes in both tumors and normals)
 ##' @param samples vector with sample names to use for the analysis. If this is NULL, all samples will
 ##' be used; default: NULL
 ##' @param paired.wilcox boolean indicating whether doing paired or unpaired analysis; default: TRUE
@@ -241,10 +241,10 @@ doCnvAnalysis = function(tumors,
     	normal.samples = intersect(samples, colnames(normals))
   	}
 
-	if (is.null(genes)) {
-		genes = rownames(tumors)
+	selected.genes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(genes)) {
+		selected.genes = intersect(genes, selected.genes)
 	}	
-  	selected.genes = intersect(genes, intersect(rownames(tumors), rownames(normals)))
   	if (length(selected.genes) == 0) {
 	  	warning("No gene of interest is contained in copy number data of both tumors and normals!")
 	  	return(list())
@@ -270,7 +270,7 @@ doCnvAnalysis = function(tumors,
 ##' @param tumors matrix with tumor copy number matrix, genes in rows and samples in columns
 ##' @param normals matrix with normal sample copy number matrix, genes in rows and samples in columns
 ##' @param cnv.analysis list returned by doCnvAnalysis()
-##' @param genes character vector of genes; default: NULL (test all genes in tumors)
+##' @param genes character vector of genes; default: NULL (test all genes in both tumors and normals)
 ##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
 ##' @param cor.FDR significance cut-off for correlation FDR; default=0.05
 ##' @param diff.cutoff copy number difference needs to be smaller or greater than this cut-off to be considered significant; default=-0.1
@@ -296,19 +296,24 @@ summarizeCnv = function(tumors,
 	# If we want to find genes with lower copy number in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
-	if (is.null(genes)) {
-		genes = rownames(tumors)
-	}	
+	significant.genes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(genes)) {
+		significant.genes = intersect(genes, significant.genes)
+	}
+	cnv.analysis$cors = cnv.analysis$cors[which(rownames(cnv.analysis$cors) %in% significant.genes), ]
+	cnv.analysis$wilcox = cnv.analysis$wilcox[which(names(cnv.analysis$wilcox) %in% significant.genes)]
+	cnv.analysis$diffs = cnv.analysis$diffs[which(names(cnv.analysis$diffs) %in% significant.genes)]
 	
 	## Integrate results
 	# Correlation significance filter
 	cnv.analysis$cors = cbind(cnv.analysis$cors, cor.FDR=p.adjust(cnv.analysis$cors[, "cor.p"], method="BH"))
-	significant.genes = rownames(cnv.analysis$cors)[cnv.analysis$cors[, "cor.FDR"] <= cor.FDR & cnv.analysis$cors[, "cor"] > 0]
+	significant.genes = rownames(cnv.analysis$cors)[which(cnv.analysis$cors[, "cor.FDR"] <= cor.FDR & cnv.analysis$cors[, "cor"] > 0)]
 	
 	# Difference filter
-	cnv.analysis$wilcox = cbind(wilcox.p=cnv.analysis$wilcox, wilcox.FDR=p.adjust(cnv.analysis$wilcox[significant.genes], method="BH")[names(cnv.analysis$wilcox)])
-	significant.genes = intersect(significant.genes, names(cnv.analysis$diffs)[compare(cnv.analysis$diffs, diff.cutoff)])
-	significant.genes = intersect(significant.genes, rownames(cnv.analysis$wilcox)[cnv.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR])
+	cnv.analysis$wilcox = cbind(wilcox.p=cnv.analysis$wilcox, 
+								wilcox.FDR=p.adjust(cnv.analysis$wilcox[significant.genes], method="BH")[names(cnv.analysis$wilcox)])
+	significant.genes = names(which(compare(cnv.analysis$diffs[significant.genes], diff.cutoff)))
+	significant.genes = names(which(cnv.analysis$wilcox[significant.genes, "wilcox.FDR"] <= wilcox.FDR))
 	
 	gene.scores = rep(0, length(genes))
 	names(gene.scores) = genes
