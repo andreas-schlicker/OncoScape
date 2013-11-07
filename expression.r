@@ -100,7 +100,7 @@ diffExpr = function(dgel, design) {
 ##' The function will run (un-)paired Wilcoxon tests.
 ##' @param tumors expression matrix with samples in the columns and genes in the rows
 ##' @param normals expression matrix with samples in the columns and genes in the rows
-##' @param genes character vector of genes; default: NULL (test all genes in tumors)
+##' @param genes character vector of genes; default: NULL (test all genes in both tumors and normals)
 ##' @param paired boolean, whether paired or unpaired test is to be performed
 ##' @return named list with two elements: "exprs" matrix with average expression across tumors
 ##' and normals, and "wilcox" being a vector with Wilcoxon test p-values
@@ -113,11 +113,11 @@ doExprAnalysis = function(tumors, normals, genes=NULL, paired=TRUE) {
 		normals = matrixFromVector(normals)
 	}
 	
-	if (is.null(genes)) {
-		genes = rownames(tumors)
+	selected.genes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(genes)) {
+		selected.genes = intersect(genes, selected.genes)
 	}
 	
-	selected.genes = intersect(genes, intersect(rownames(tumors), rownames(normals)))
 	if (length(selected.genes) == 0) {
 		warning("No gene of interest is contained in gene expression data of both tumors and normals!")
 		return(list())
@@ -137,7 +137,7 @@ doExprAnalysis = function(tumors, normals, genes=NULL, paired=TRUE) {
 ##' @param tumors expression matrix with samples in the columns and genes in the rows
 ##' @param normals expression matrix with samples in the columns and genes in the rows
 ##' @param expr.analysis list returned by doExprAnalysis() 
-##' @param genes character vector of gene symbols; default: NULL (test all genes in tumors)
+##' @param genes character vector of gene symbols; default: NULL (test all genes in both tumors and normals)
 ##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
 ##' @param regulation either "down" or "up", whether down- or upregulation in tumors
 ##' should be scored
@@ -158,14 +158,16 @@ summarizeExpr = function(tumors,
 	# If we want to find genes with lower expression in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
-	if (is.null(genes)) {
-		genes = rownames(tumors)
-	}	
-	expr.analysis$wilcox = expr.analysis$wilcox[which(names(expr.analysis$wilcox) %in% genes)]
-	expr.analysis$exprs = expr.analysis$exprs[which(rownames(expr.analysis$exprs) %in% genes), ]
+	significant.genes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(genes)) {
+		significant.genes = intersect(genes, significant.genes)
+	}
+	
+	expr.analysis$wilcox = expr.analysis$wilcox[which(names(expr.analysis$wilcox) %in% significant.genes)]
+	expr.analysis$exprs = expr.analysis$exprs[which(rownames(expr.analysis$exprs) %in% significant.genes), ]
 	
 	expr.analysis$wilcox = cbind(wilcox.p=expr.analysis$wilcox, wilcox.FDR=p.adjust(expr.analysis$wilcox, method="BH")[names(expr.analysis$wilcox)])
-	significant.genes = rownames(expr.analysis$wilcox)[expr.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR]
+	significant.genes = names(which(expr.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR))
 	significant.genes = names(which(apply(expr.analysis$exprs[significant.genes, ], 1, function(x) { compare(x["tumor"], x["normal"])} )))
 	
 	gene.scores = rep(0, length(genes))
