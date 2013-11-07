@@ -13,9 +13,9 @@
 ##' @return named list with two entries ("selected.probes" and "gene2probe")
 ##' @author Andreas Schlicker
 filterProbes = function(tumors, normals, 
-		genes, probe.annotation, gene2probe,
-		regions=c(""), 
-		snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
+						genes, probe.annotation, gene2probe,
+						regions=c(""), 
+						snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
 	require(stringr) || stop("Could not load required package \"stringr\"!")
 	
 	# Probes in the two data set that also have annotation
@@ -77,6 +77,8 @@ filterProbes = function(tumors, normals,
 corMethExprs = function(meth.data, meth.ann, exprs.data) {
 	# Samples with methylation and expression data
 	samps = intersect(colnames(meth.data), colnames(exprs.data))
+	# Genes with expression data
+	exprs.genes = rownames(exprs.data)
 	
 	# Correlations
 	res = list()
@@ -92,15 +94,13 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 	for (x in rownames(meth.data)) {
 		# No space left in temporary data.frame
 		if (i > LENGTH) {
-			cors = c(cors, temp1)
+			res = c(res, temp1)
 			temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
 							   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH),
 							   stringsAsFactors=FALSE)
 			i = 1
 		}
 	
-		# Genes with expression data
-		exprs.genes = rownames(exprs.data)
 		# Get all genes this probe maps to
 		genes = intersect(unlist(strsplit(meth.ann[x, "Gene_symbols_unique"], ";")),
 						  exprs.genes)
@@ -114,7 +114,7 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 		}
 	}
 	# Save the last values
-	cors = c(cors, temp1[1:(i-1), ])
+	res = c(res, temp1[1:(i-1), ])
 	
 	res = do.call("rbind", cors)
 	colnames(res) = c("probe", "gene", "cor", "cor.p")
@@ -132,7 +132,8 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 ##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
 ##' @param exprs gene expression matrix with genes in rows and samples in columns
 ##' @param probe.annotation methylation probe annotation matrix. 
-##' @param selected.probes vector with all probes to investigate (as returned by genesAndProbes())
+##' @param selected.probes vector with all probes to investigate (as returned by genesAndProbes()); 
+##' default: NULL (test all probes in both tumors and normals) 
 ##' @param samples vector with samples to include in the analysis, if == NULL, all samples are used; default: NULL
 ##' @return named list with three entries: diff: difference in average methylation between tumors and
 ##' normals; cors: correlation values between methylation and expression, with p-values and FDR;
@@ -143,7 +144,7 @@ doMethylationAnalysis = function(tumors,
 								 normals, 
 								 exprs, 
 								 probe.annotation,
-								 selected.probes,
+								 selected.probes=NULL,
 								 samples=NULL, 
 								 paired.wilcox=FALSE) {
 	if (!is.null(samples)) {
@@ -151,11 +152,14 @@ doMethylationAnalysis = function(tumors,
     	normals = normals[, intersect(samples, colnames(normals)), drop=FALSE]
   	}
   
-  	# Restrict to selected probes
-	common.probes = intersect(selected.probes, intersect(rownames(tumors), rownames(normals)))
+	common.probes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(selected.probes)) {
+		common.probes = intersect(selected.probes, common.probes)
+	}
 	if (length(common.probes) == 0) {
 		stop("No probes to test in doMethylationAnalysis!")
 	}
+	
   	tumors = tumors[common.probes, , drop=FALSE]
   	normals = normals[common.probes, , drop=FALSE]
   
@@ -178,7 +182,7 @@ doMethylationAnalysis = function(tumors,
 ##' @param meth.analysis list returned by doMethylationAnalysis()
 ##' @param gene2probe nested list mapping probes to genes and gene regions
 ##' @param probe2gene nested list mapping genes to probes and gene regions
-##' @param genes character vector of genes to consider
+##' @param genes character vector of genes; default: NULL (test all genes in tumors)
 ##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
 ##' @param cor.FDR significance cut-off for correlation FDR; default=0.05
 ##' @param diff.cutoff methylation difference needs to be smaller or greater than this cut-off to be considered significant; default=0.1
@@ -192,7 +196,7 @@ summarizeMethylation = function(tumors,
 							 	meth.analysis,
 							 	gene2probe,
 							 	probe2gene,
-							 	genes, 
+							 	genes=NULL,
 							 	wilcox.FDR=0.05, 
 							 	cor.FDR=0.05,
 							 	diff.cutoff=0.1, 
@@ -207,6 +211,15 @@ summarizeMethylation = function(tumors,
 	# If we want to find genes with higher methylation in tumors get the greaterThan function
 	# If we want to find genes with lower methylation in tumors, get the smallerThan function
 	compare = switch(regulation, down=greaterThan, up=smallerThan)
+	
+	# Restrict the analysis to probes that match to the genes of interest
+	significant.probes = intersect(rownames(tumors), rownames(normals))
+	if (!is.null(genes)) {
+		significant.probes = intersect(unlist(gene2probe[genes]), significant.probes)
+	}
+	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
+	meth.analysis$diffs = meth.analysis$diffs[which(names(meth.analysis$diffs) %in% significant.probes)]
+	meth.analysis$wilcox = meth.analysis$wilcox[which(names(meth.analysis$wilcox) %in% significant.probes)]
 	
 	# Correlation significance filter
 	# Multiple testing correction
@@ -234,7 +247,7 @@ summarizeMethylation = function(tumors,
 		}
 		significant.cors = rbind(cbind(tsc.body, region="body"), cbind(tsc.rest, region="rest"))
 	}
-	significant.probes = unique(significant.cors[, "probe"])
+	significant.probes = intersect(significant.probes, unique(significant.cors[, "probe"]))
 	
 	# Calculate multiple testing correction for remaining probes
 	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, 
