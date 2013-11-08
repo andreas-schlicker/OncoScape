@@ -290,7 +290,7 @@ summarizeMethylation = function(tumors,
 		summary[gene, "relative"] = summary[gene, "absolute"] / nTumors
 	}
 	
-	list(scores=gene.scores, summary=summary, samples=samples)
+	list(scores=gene.scores, summary=summary, samples=samples, meth.analysis=meth.analysis)
 }
 
 ##' Summarizes the results of analyzing methylation data.
