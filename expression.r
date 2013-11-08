@@ -176,5 +176,5 @@ summarizeExpr = function(tumors,
 	
 	affected.sampels = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, paired)
 	
-	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples)
+	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, expr.analysis=expr.analysis)
 }
