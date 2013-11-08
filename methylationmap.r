@@ -33,18 +33,19 @@ filterProbes = function(tumors, normals,
 	}
 	
 	# All probes that we look at
-	res.selprobes = intersect(unique(unlist(unlist(res.g2p))), common.probes)
-	
-	# We need to filter out probes containing SNPs in the given categories
+	excl.probes = setdiff(unique(unlist(res.g2p)), common.probes)
 	if (length(snps) > 0) {
+		# We need to filter out probes containing SNPs in the given categories
 		# Find all probes that have a SNP in at least one category
-		excl.snps = apply(infinium450.probe.ann[res.selprobes, snps, drop=FALSE], 1, function(x) { any(x) })
+		excl.snps = apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, function(x) { any(x) })
 		excl.snps = names(excl.snps)[excl.snps]
-		
-		# That's the remining probes
-		res.selprobes = setdiff(res.selprobes, excl.snps)
+		excl.probes = union(excl.probes, excl.snps)
+	}
+	
+	if (length(excl.probes) > 0) {
+		res.selprobes = setdiff(unique(unlist(res.g2p)), excl.probes)
 		# Clean up the gene to probe mapping as well
-		for (p in excl.snps) {
+		for (p in excl.probes) {
 			# All genes and their regions with the current probe
 			gene_regions = str_split(probe.annotation[p, "Symbol_region_unique"], ";")[[1]]
 			for (gene_region in gene_regions) {
@@ -90,20 +91,22 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 					   stringsAsFactors=FALSE)
 	# Counter for current element in temporary vector
 	i = 1
-	
+	k = 1
 	for (x in rownames(meth.data)) {
+		# Get all genes this probe maps to
+		genes = intersect(unlist(strsplit(meth.ann[x, "Gene_symbols_unique"], ";")),
+				exprs.genes)
+		
 		# No space left in temporary data.frame
-		if (i > LENGTH) {
-			res = c(res, temp1)
+		if ((i+length(genes)) > LENGTH) {
+			res[[k]] = temp1[1:(i-1), ]
+			k = k + 1
 			temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
 							   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH),
 							   stringsAsFactors=FALSE)
 			i = 1
 		}
 	
-		# Get all genes this probe maps to
-		genes = intersect(unlist(strsplit(meth.ann[x, "Gene_symbols_unique"], ";")),
-						  exprs.genes)
 		for (gene in genes) {
 			tempCor = cor.test(exprs.data[gene, samps], 
 							   meth.data[x, samps], 
@@ -111,12 +114,13 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 							   use="pairwise.complete.obs",
 							   exact=FALSE)
 			temp1[i, ] = c(x, gene, tempCor$estimate, tempCor$p.value)
+			i = i + 1
 		}
 	}
 	# Save the last values
-	res = c(res, temp1[1:(i-1), ])
+	res[[k]] = temp1[1:(i-1), ]
 	
-	res = do.call("rbind", cors)
+	res = do.call("rbind", res)
 	colnames(res) = c("probe", "gene", "cor", "cor.p")
 	res[, "cor"] = as.numeric(res[, "cor"])
 	res[, "cor.p"] = as.numeric(res[, "cor.p"])
@@ -226,28 +230,23 @@ summarizeMethylation = function(tumors,
 	meth.analysis$cors = cbind(meth.analysis$cors, cor.FDR=p.adjust(meth.analysis$cors[, "cor.p"], method="BH"))
 	significant.cors = meth.analysis$cors[which(meth.analysis$cors[, "cor.FDR"] <= cor.FDR), ]
 	
+	tsc.body = c()
+	tsc.rest = c()
 	if (!gene.region) {
-		significant.cors = cbind(significant.cors[which(significant.cors[, "cor"] < 0), ], region="rest")
+		tsc.rest = which(significant.cors[, "cor"] < 0)
 	} else {
-		tsc.body = data.frame()
-		tsc.rest = data.frame()
-		for (probe in unique(significant.cors[, "probe"])) {
-			bodyGenes = probe2gene[[probe]][["Body"]]
-			if (!is.null(bodyGenes)) {
-				tsc.body = rbind(tsc.body, significant.cors[which(significant.cors[, "probe"] == probe & 
-															 	  significant.cors[, "cor"] > 0 & 
-															 	  significant.cors[, "gene"] %in% bodyGenes), ])
-			}
-			otherGenes = unlist(probe2gene[[probe]][setdiff(names(probe2gene[[probe]]), c("Body"))])
-			if (!is.null(otherGenes)) {
-				tsc.rest = rbind(tsc.rest, significant.cors[which(significant.cors[, "probe"] == probe & 
-													 		 	  significant.cors[, "cor"] < 0 & 
-															 	  significant.cors[, "gene"] %in% otherGenes), ])
+		for (i in nrow(significant.cors)) {
+			probe = significant.cors[i, "probe"]
+			gene = significant.cors[i, "gene"]
+			
+			if (gene %in% probe2gene[[probe]][["Body"]] && significant.cors[i, "cor"] > 0) {
+				tsc.body = c(tsc.body, i)
+			} else if (significant.cors[i, "cor"] < 0) {
+				tsc.rest = c(tsc.rest, i)
 			}
 		}
-		significant.cors = rbind(cbind(tsc.body, region="body"), cbind(tsc.rest, region="rest"))
 	}
-	significant.probes = intersect(significant.probes, unique(significant.cors[, "probe"]))
+	significant.probes = intersect(significant.probes, unique(significant.cors[c(tsc.body, tsc.rest), "probe"]))
 	
 	# Calculate multiple testing correction for remaining probes
 	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, 
@@ -260,8 +259,8 @@ summarizeMethylation = function(tumors,
 	significant.probes = intersect(significant.probes, rownames(meth.analysis$wilcox)[meth.analysis$wilcox$wilcox.FDR <= wilcox.FDR])
 	
 	## Find affected samples per probe
-	bodyprobes = intersect(significant.probes, significant.cors[which(significant.cors[, "region"] == "body"), "probe"])
-	nonbodyprobes = intersect(significant.probes, significant.cors[which(significant.cors[, "region"] != "body"), "probe"])
+	bodyprobes = intersect(significant.probes, significant.cors[tsc.body, "probe"])
+	nonbodyprobes = intersect(significant.probes, significant.cors[tsc.rest, "probe"])
 	nonbody = countAffectedSamples(nonbodyprobes, 
 								   tumors[nonbodyprobes, , drop=FALSE], 
 								   normals[nonbodyprobes, , drop=FALSE], 
