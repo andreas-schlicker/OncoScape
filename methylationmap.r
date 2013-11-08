@@ -206,9 +206,7 @@ summarizeMethylation = function(tumors,
 							 	diff.cutoff=0.1, 
 							 	regulation=c("down", "up"),
 							 	gene.region=TRUE,
-							 	stddev=1,
-								threshold=0, 
-								score=c("atleast", "absolute")) { 
+							 	stddev=1) { 
 	regulation = match.arg(regulation)
 	
 	# Get the correct comparison function
@@ -235,11 +233,10 @@ summarizeMethylation = function(tumors,
 	if (!gene.region) {
 		tsc.rest = which(significant.cors[, "cor"] < 0)
 	} else {
-		for (i in nrow(significant.cors)) {
-			probe = significant.cors[i, "probe"]
-			gene = significant.cors[i, "gene"]
+		for (i in 1:nrow(significant.cors)) {
+			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]] && 
+				significant.cors[i, "cor"] > 0) {
 			
-			if (gene %in% probe2gene[[probe]][["Body"]] && significant.cors[i, "cor"] > 0) {
 				tsc.body = c(tsc.body, i)
 			} else if (significant.cors[i, "cor"] < 0) {
 				tsc.rest = c(tsc.rest, i)
@@ -256,7 +253,7 @@ summarizeMethylation = function(tumors,
 	#significant.probes = significant.probes[!is.na(significant.probes)]
 	
 	# Wilcoxon significance filter
-	significant.probes = intersect(significant.probes, rownames(meth.analysis$wilcox)[meth.analysis$wilcox$wilcox.FDR <= wilcox.FDR])
+	significant.probes = intersect(significant.probes, rownames(meth.analysis$wilcox)[meth.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR])
 	
 	## Find affected samples per probe
 	bodyprobes = intersect(significant.probes, significant.cors[tsc.body, "probe"])
@@ -285,11 +282,11 @@ summarizeMethylation = function(tumors,
 	for (gene in genes) {
 		allProbes = unlist(gene2probe[[gene]])
 		# Get the ratio of (#significant probes with higher methylation) / (#all probes)
-		gene.scores[gene] = length(intersect(significant.probes, geneProbes)) / length(allProbes)
+		gene.scores[gene] = length(intersect(significant.probes, allProbes)) / length(allProbes)
 		
 		samples[[gene]] = union(unlist(body$samples[intersect(allProbes, names(body$samples))]),
 								unlist(nonbody$samples[intersect(allProbes, names(nonbody$samples))]))
-		summary[gene, "absolute"] = length(sampels[[gene]])
+		summary[gene, "absolute"] = length(samples[[gene]])
 		summary[gene, "relative"] = summary[gene, "absolute"] / nTumors
 	}
 	
