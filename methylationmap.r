@@ -213,6 +213,8 @@ summarizeMethylation = function(tumors,
 	# If we want to find genes with higher methylation in tumors get the greaterThan function
 	# If we want to find genes with lower methylation in tumors, get the smallerThan function
 	compare = switch(regulation, down=greaterThan, up=smallerThan)
+	# Gene body probes should behave differently
+	compareBody = switch(regulation, down=smallerThan, up=greaterThan)
 	
 	# Restrict the analysis to probes that match to the genes of interest
 	significant.probes = intersect(rownames(tumors), rownames(normals))
@@ -234,11 +236,14 @@ summarizeMethylation = function(tumors,
 		tsc.rest = which(significant.cors[, "cor"] < 0)
 	} else {
 		for (i in 1:nrow(significant.cors)) {
-			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]] && 
-				significant.cors[i, "cor"] > 0) {
-			
-				tsc.body = c(tsc.body, i)
+			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]]) {
+				# We have a body probe --> positive correlation is expected
+				# Note: This might not be true for 1st exon probes, but they are annotated separately
+				if (significant.cors[i, "cor"] > 0) {
+					tsc.body = c(tsc.body, i)
+				}
 			} else if (significant.cors[i, "cor"] < 0) {
+				# We have a probe that is not in the gene body --> expect negative correlation
 				tsc.rest = c(tsc.rest, i)
 			}
 		}
@@ -249,11 +254,11 @@ summarizeMethylation = function(tumors,
 	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, 
 								 wilcox.FDR=p.adjust(meth.analysis$wilcox[significant.probes], method="BH")[names(meth.analysis$wilcox)])
 	# Mean difference filter 
-	significant.probes = intersect(significant.probes, names(meth.analysis$diffs)[compare(meth.analysis$diffs, diff.cutoff)])
-	#significant.probes = significant.probes[!is.na(significant.probes)]
-	
+	significant.probes = intersect(significant.probes, 
+								   union(names(which(compare(meth.analysis$diffs[unique(significant.cors[tsc.rest, "probe"])], diff.cutoff))),
+										 names(which(compareBody(meth.analysis$diffs[unique(significant.cors[tsc.body, "probe"])], diff.cutoff)))))
 	# Wilcoxon significance filter
-	significant.probes = intersect(significant.probes, rownames(meth.analysis$wilcox)[meth.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR])
+	significant.probes = names(which(meth.analysis$wilcox[significant.probes, "wilcox.FDR"] <= wilcox.FDR))
 	
 	## Find affected samples per probe
 	bodyprobes = intersect(significant.probes, significant.cors[tsc.body, "probe"])
