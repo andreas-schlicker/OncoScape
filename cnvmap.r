@@ -319,7 +319,7 @@ summarizeCnv = function(tumors,
 	names(gene.scores) = genes
 	gene.scores[significant.genes] = 1
 	
-	affected.sampels = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, TRUE)
+	affected.samples = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, TRUE)
 	
 	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, cnv.analysis=cnv.analysis)
 }
