@@ -168,7 +168,7 @@ summarizeExpr = function(tumors,
 	
 	expr.analysis$wilcox = cbind(wilcox.p=expr.analysis$wilcox, wilcox.FDR=p.adjust(expr.analysis$wilcox, method="BH")[names(expr.analysis$wilcox)])
 	significant.genes = names(which(expr.analysis$wilcox[, "wilcox.FDR"] <= wilcox.FDR))
-	significant.genes = names(which(apply(expr.analysis$exprs[significant.genes, ], 1, function(x) { compare(x["tumor"], x["normal"])} )))
+	significant.genes = names(which(apply(expr.analysis$exprs[significant.genes, , drop=FALSE], 1, function(x) { compare(x["tumor"], x["normal"])} )))
 	
 	gene.scores = rep(0, length(genes))
 	names(gene.scores) = genes
