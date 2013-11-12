@@ -213,20 +213,19 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 }
 
 ##' Compute the union of all elements of the input list.
-##' @samples a named list with vectors to get the union of
-##' @use a vector scores; if given, an entry of 1 indicates
+##' @samples a named list of vectors to get the union of
+##' @use a vector of scores; if given, an entry of 1 indicates
 ##' that this sample list has to be taken into account; default: NULL
 ##' Both arguments need to use the same names for elements
 ##' @return the union
 ##' @author Andreas Schlicker
 sampleUnion = function(samples, use=NULL) {
-	res = c()
 	indexes = names(samples)
-	if (is.null(indexes)) {
-		indexes = 1:length(samples)
-	} else {
+	if (!is.null(use)) {
 		indexes = names(which(use == 1))
 	}
+	
+	res = c()
 	for (i in indexes) {
 		res = union(res, samples[[i]])
 	}
