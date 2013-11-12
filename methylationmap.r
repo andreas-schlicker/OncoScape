@@ -193,6 +193,7 @@ doMethylationAnalysis = function(tumors,
 ##' @param regulation either "down" or "up" for finding genes that are regulated in the corresponding direction; default="down"
 ##' @param gene.region boolean indicating whether gene region annotation should be taken into account; default=TRUE
 ##' @param stddev how many standard deviations does a sample have to be away from the mean to be considered affected; default=1
+##' @param score.cutoff double, a gene scores 1, if it exceeds this cut-off
 ##' @return named list with scores for genes ("scores"), number of affected samples ("summary") and the lists of affected samples ("samples")
 ##' @author Andreas Schlicker
 summarizeMethylation = function(tumors,
@@ -206,7 +207,8 @@ summarizeMethylation = function(tumors,
 							 	diff.cutoff=0.1, 
 							 	regulation=c("down", "up"),
 							 	gene.region=TRUE,
-							 	stddev=1) { 
+							 	stddev=1,
+								score.cutoff=0) { 
 	regulation = match.arg(regulation)
 	
 	# Get the correct comparison function
@@ -294,6 +296,8 @@ summarizeMethylation = function(tumors,
 		summary[gene, "absolute"] = length(samples[[gene]])
 		summary[gene, "relative"] = summary[gene, "absolute"] / nTumors
 	}
+	
+	gene.scores = sapply(gene.scores, function(x) { as.integer(x > score.cutoff) })
 	
 	list(scores=gene.scores, summary=summary, samples=samples, meth.analysis=meth.analysis)
 }
