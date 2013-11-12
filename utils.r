@@ -224,8 +224,7 @@ sampleUnion = function(samples, use=NULL) {
 	indexes = names(samples)
 	if (is.null(indexes)) {
 		indexes = 1:length(samples)
-	}
-	if (!is.null(use)) {
+	} else {
 		indexes = names(which(use == 1))
 	}
 	for (i in indexes) {
