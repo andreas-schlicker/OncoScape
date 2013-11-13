@@ -83,9 +83,11 @@ summarizeMutations = function(mutations, genes, ratio.mut.samples=0.01, uniquene
 ##' Count the number of tumors affected by mutations in the given genes. 
 ##' @param mut.summary matrix summarizing mutation information as produced by analyzeMuts()
 ##' @param mutations the matrix with the mutation data
-##' @param genes a character vector containing the genes to be analyzed
+##' @param genes character vector containing the genes that have to appear in the result
+##' @param test.genes character vector with genes that have to be tested; default: genes
 ##' @param ignore character vector containing the type of mutations that should be 
 ##' ignored, this vector is used as is; defaults to c("silent")
+##' @param samples sample IDs the analysis is restricted to; default: NULL
 ##' @param genecol integer giving the index of the gene id column or the column name; defaults to 1
 ##' @param typecol integer giving the index of the mutation type column or the column name; defaults to 9
 ##' @param samplecol integer giving the index of the sample id column or the column name; defaults to 16
@@ -93,18 +95,26 @@ summarizeMutations = function(mutations, genes, ratio.mut.samples=0.01, uniquene
 ##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
 ##' samples affected by a change in this feature
 ##' @author Andreas Schlicker
-mutationsAffectedSamples = function(mut.summary, mutations, genes, ignore=c("Silent"), 
-									samples=NULL,
+mutationsAffectedSamples = function(mut.summary, mutations, 
+									genes, test.genes=genes, 
+									ignore=c("Silent"), samples=NULL,
 									genecol=1, typecol=9, samplecol=16) {  
+	# Filter samples
 	locMutations = mutations
 	if (!is.null(samples)) {
 		locMutations = mutations[which(mutations[, samplecol] %in% samples), ]
 	}
+	# Filter out mutations that should be ignored
+	locMutations = locMutations[which(!(locMutations[, typecol] %in% ignore)), ]
+	# Filter genes
+	locMutations = locMutations[which(locMutations[, genecol] %in% test.genes), ]
 	
 	res = lapply(genes,
-				 function(x) { locMutations[which(locMutations[, genecol] == x & !(locMutations[, typecol] %in% ignore)), samplecol] })
+				 function(x) { locMutations[which(locMutations[, genecol] == x), samplecol] })
 	names(res) = genes
 	
-	return(list(summary=cbind(absolute=mut.summary[, "mutated samples"], relative=(mut.summary[, "mutated samples"] / mut.summary[, "unique samples"])),
+	abs.samples = sapply(res, length)
+	
+	return(list(summary=cbind(absolute=abs.samples, relative=(abs.samples / mut.summary[, "unique samples"])),
 				samples=res))
 }
