@@ -299,7 +299,10 @@ summarizeCnv = function(tumors,
 	significant.genes = intersect(rownames(tumors), rownames(normals))
 	if (!is.null(genes)) {
 		significant.genes = intersect(genes, significant.genes)
+	} else {
+		genes = significant.genes
 	}
+	
 	cnv.analysis$cors = cnv.analysis$cors[which(rownames(cnv.analysis$cors) %in% significant.genes), ]
 	cnv.analysis$wilcox = cnv.analysis$wilcox[which(names(cnv.analysis$wilcox) %in% significant.genes)]
 	cnv.analysis$diffs = cnv.analysis$diffs[which(names(cnv.analysis$diffs) %in% significant.genes)]
@@ -319,7 +322,7 @@ summarizeCnv = function(tumors,
 	names(gene.scores) = genes
 	gene.scores[significant.genes] = 1
 	
-	affected.samples = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, TRUE)
+	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, 1, TRUE)
 	
 	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, cnv.analysis=cnv.analysis)
 }
