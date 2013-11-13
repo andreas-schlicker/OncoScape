@@ -31,11 +31,11 @@ replaceExtractId = function(path, pattern, mapping, start, end) {
 # Returns a list with one entry per file. The sample barcode is used as element name
 readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
 	if (!require(stringr)) {
-    stop("Could not load required package \"stringr\".")
-  }
-  
+		stop("Could not load required package \"stringr\".")
+	}
+	
 	sampleType = match.arg(sampleType)
-
+	
 	# Assume tumor by default
 	typeCodes = 1:9
 	if (sampleType == "normal") {
@@ -47,22 +47,68 @@ readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
 		# Get the start of the sample barcode
 		loc = str_locate(f, "TCGA")[1, 1]
 		# the full barcode
-  	barcode = str_sub(f, start=loc, end=loc+11)
-  	# and the sample type
-  	sampleType = str_sub(f, start=loc+13, end=loc+14)
-  	if (as.integer(sampleType) %in% typeCodes) {
-  		read[[barcode]] = scan(f, 
-  													 what=what, 
-  													 skip=1, 
-  													 flush=TRUE, 
-  													 strip.white=TRUE, 
-  													 fill=TRUE, 
-  													 sep="\t",
-  													 quiet=TRUE)
-  	}
-  }
-  read
+		barcode = str_sub(f, start=loc, end=loc+11)
+		# and the sample type
+		sampleType = str_sub(f, start=loc+13, end=loc+14)
+		if (as.integer(sampleType) %in% typeCodes) {
+			read[[barcode]] = scan(f, 
+					what=what, 
+					skip=1, 
+					flush=TRUE, 
+					strip.white=TRUE, 
+					fill=TRUE, 
+					sep="\t",
+					quiet=TRUE)
+		}
+	}
+	
+	read
 }
+
+##' Read raw TCGA data
+##' @param path name of the directory with the data
+##' @param pattern file name pattern of the files to read in 
+##' @param what vector giving the data types of the columns to read, will be passed on to "scan"
+##' @param sampleType either tumor or normal; if "tumor", only samples with tissue types 1 through 9 will
+##' be read; if "normal", only samples with tissue types 10 and 11 will be read
+##' @param file2barcode matrix with filenames in the first column and tumor sample barcodes in the second;
+##' can usually be obtained from "FILE_SAMPLE_MAP.txt"
+##' @return list with one entry per file; the sample barcode is used as element name
+##' @author Andreas Schlicker
+readRawDataUUID = function(path, pattern, what, sampleType=c("tumor", "normal"), file2barcode=NULL) {
+	if (!require(stringr)) {
+		stop("Could not load required package \"stringr\".")
+	}
+	
+	sampleType = match.arg(sampleType)
+	
+	# Assume tumor by default
+	typeCodes = 1:9
+	if (sampleType == "normal") {
+		typeCodes = 10:11
+	}
+	
+	read = list()
+	for (f in list.files(path=path, pattern=pattern, full.names=FALSE)) {
+		barcode = str_sub(file2barcode[which(file2barcode[, 1] == f), 2], start=1, end=12)
+		# and the sample type
+		sampleType = str_sub(file2barcode[which(file2barcode[, 1] == f), 2], start=14, end=15)
+		if (as.integer(sampleType) %in% typeCodes) {
+			read[[barcode]] = scan(file.path(path, f), 
+								   what=what, skip=1, flush=TRUE, 
+								   strip.white=TRUE, fill=TRUE, 
+								   sep="\t", quiet=TRUE)
+		}
+	}
+	
+	read
+}
+
+inp = readRawDataUUID(path="RNASeqV2/UNC__IlluminaHiSeq_RNASeqV2/Level_3/",
+					  pattern="rsem.genes.normalized_results$",
+					  what=list(gene="", normalized_count=double()),
+					  sampleType="tumor", file2barcode)
+
 
 # Create matrix from RNAseqV2 input
 # read the output of a call to "readRawData"
