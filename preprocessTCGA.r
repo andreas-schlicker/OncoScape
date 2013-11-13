@@ -104,12 +104,6 @@ readRawDataUUID = function(path, pattern, what, sampleType=c("tumor", "normal"),
 	read
 }
 
-inp = readRawDataUUID(path="RNASeqV2/UNC__IlluminaHiSeq_RNASeqV2/Level_3/",
-					  pattern="rsem.genes.normalized_results$",
-					  what=list(gene="", normalized_count=double()),
-					  sampleType="tumor", file2barcode)
-
-
 # Create matrix from RNAseqV2 input
 # read the output of a call to "readRawData"
 # type either gene or isoform
