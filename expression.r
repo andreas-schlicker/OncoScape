@@ -161,6 +161,8 @@ summarizeExpr = function(tumors,
 	significant.genes = intersect(rownames(tumors), rownames(normals))
 	if (!is.null(genes)) {
 		significant.genes = intersect(genes, significant.genes)
+	} else {
+		genes = significant.genes
 	}
 	
 	expr.analysis$wilcox = expr.analysis$wilcox[which(names(expr.analysis$wilcox) %in% significant.genes)]
@@ -174,7 +176,7 @@ summarizeExpr = function(tumors,
 	names(gene.scores) = genes
 	gene.scores[significant.genes] = 1
 	
-	affected.samples = countAffectedSamples(significant.genes, tumors, normals, regulation, 1, paired)
+	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, 1, paired)
 	
 	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, expr.analysis=expr.analysis)
 }
