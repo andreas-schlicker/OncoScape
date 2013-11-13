@@ -222,7 +222,11 @@ summarizeMethylation = function(tumors,
 	significant.probes = intersect(rownames(tumors), rownames(normals))
 	if (!is.null(genes)) {
 		significant.probes = intersect(unlist(gene2probe[genes]), significant.probes)
+		all.probes = significant.probes
+	} else {
+		all.probes = unique(unlist(gene2probe))
 	}
+	
 	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
 	meth.analysis$diffs = meth.analysis$diffs[which(names(meth.analysis$diffs) %in% significant.probes)]
 	meth.analysis$wilcox = meth.analysis$wilcox[which(names(meth.analysis$wilcox) %in% significant.probes)]
@@ -265,13 +269,15 @@ summarizeMethylation = function(tumors,
 	## Find affected samples per probe
 	bodyprobes = intersect(significant.probes, significant.cors[tsc.body, "probe"])
 	nonbodyprobes = intersect(significant.probes, significant.cors[tsc.rest, "probe"])
-	nonbody = countAffectedSamples(nonbodyprobes, 
+	nonbody = countAffectedSamples(all.probes,
+								   nonbodyprobes, 
 								   tumors[nonbodyprobes, , drop=FALSE], 
 								   normals[nonbodyprobes, , drop=FALSE], 
 								   regulation=switch(regulation, up="down", down="up"), 
 								   stddev, 
 								   paired=FALSE)
-	body = countAffectedSamples(bodyprobes, 
+	body = countAffectedSamples(all.probes,
+								bodyprobes,
 								tumors[bodyprobes, , drop=FALSE], 
 								normals[bodyprobes, , drop=FALSE], 
 								regulation=regulation, 
