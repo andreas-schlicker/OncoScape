@@ -128,7 +128,8 @@ matrixFromVector = function(vec) {
 
 ##' Count the number of tumors that differ from the mean in normal samples.
 ##' All features that are not present in the tumors and/or normals matrix are filtered out.
-##' @param feature vector with feature IDs
+##' @param feature vector with feature IDs that will be contained in the results
+##' @param test.features vector with feature IDs that will be tested; default: features
 ##' @param tumors numeric matrix with features in rows and tumors samples in columns
 ##' @param normals numeric matrix with features in rows and normal samples in columns
 ##' @param regulation either "down" or "up" to test for values lower than or greater than the
@@ -141,7 +142,7 @@ matrixFromVector = function(vec) {
 ##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
 ##' samples affected by a change in this feature
 ##' @author Andreas Schlicker
-countAffectedSamples = function(features, tumors, normals, regulation=c("down", "up"), stddev=1, paired=TRUE) {
+countAffectedSamples = function(features, test.features=features, tumors, normals, regulation=c("down", "up"), stddev=1, paired=TRUE) {
 	if (length(features) > 0) {
 		regulation = match.arg(regulation)
 		
@@ -161,13 +162,15 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 			rownames(tumors) = features
 		}
 		
-		common = intersect(rownames(tumors), intersect(features, rownames(normals)))
+		# All features that are supposed to be tested with data for tumors and normals 
+		common = intersect(rownames(tumors), intersect(test.features, rownames(normals)))
+		# All features that we won't test but that should be contained in the results
 		missing = setdiff(features, common)
 		
 		matched.samples = intersect(colnames(tumors), colnames(normals))
 		if (length(matched.samples) == 0) {
 			paired = FALSE
-			warning("No paired samples found. Performing unpaired analysis!")
+			warning("countAffectedSamples: No paired samples found. Performing unpaired analysis!")
 		}
 		if (paired) {
 			# Which tumor samples have a matched normal?
@@ -198,9 +201,9 @@ countAffectedSamples = function(features, tumors, normals, regulation=c("down", 
 		}
 		
 		# Add all missing features and resort
-		affected[missing] = NA
+		affected[missing] = 0
 		affected = affected[features]
-		samples[missing] = NA
+		samples[missing] = c()
 		samples = samples[features]
 		
 		res = list(summary=cbind(absolute=affected, relative=(affected / normFactor)),
