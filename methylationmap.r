@@ -2,7 +2,7 @@
 ##' any of the genes of interest and map these genes to their probes.
 ##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
 ##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
-##' @param genes vector with gene symbols
+##' @param genes vector with gene symbols; default: NULL (all genes)
 ##' @param probe.annotation methylation probe annotation matrix. The first column has to be the 
 ##' probe id, "gene" column giving gene IDs (possibily separated by ";")
 ##' @param gene2probe nested named list that maps probes to regions of genes; names of the outer list
@@ -13,7 +13,7 @@
 ##' @return named list with two entries ("selected.probes" and "gene2probe")
 ##' @author Andreas Schlicker
 filterProbes = function(tumors, normals, 
-						genes, probe.annotation, gene2probe,
+						genes=NULL, probe.annotation, gene2probe,
 						regions=c(""), 
 						snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
 	require(stringr) || stop("Could not load required package \"stringr\"!")
@@ -21,8 +21,13 @@ filterProbes = function(tumors, normals,
 	# Probes in the two data set that also have annotation
 	common.probes = intersect(rownames(tumors), intersect(rownames(normals), rownames(probe.annotation)))
 	
-	# Get probe to gene and region mapping for all genes 
+	# If genes == NULL, test all genes
+	if (is.null(genes)) {
+		genes = names(gene2probe)
+	}
+	# Get probe to gene and region mapping for all genes
 	res.g2p = gene2probe[genes]
+	
 	# If analysis should be restricted to some gene regions, remove all others 
 	if (regions != "") {
 		for (x in names(res.g2p)) {
