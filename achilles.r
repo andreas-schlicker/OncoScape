@@ -111,7 +111,7 @@ loadAchillesData = function(directory) {
 ##' The function either gets all the ranks or phenotypes for the 
 ##' selected cell lines. Then uses the function in the summarize 
 ##' argument to calculate one final value for each gene. 
-##' @param genes a character vector with gene symbols to look at
+##' @param genes a character vector with gene symbols to look at; default: NULL (all genes in matrix achilles)
 ##' @param score use the "rank" or the "phenotype" scores of the 
 ##' genes for the analysis. "rank" refers to the rank of the gene
 ##' for each cell line. "phenotype" refers to the phenotype score 
@@ -133,13 +133,17 @@ loadAchillesData = function(directory) {
 ##' @return vector with the scores for each gene
 ##' @export 
 ##' @author Andreas Schlicker
-doAchillesAnalysis = function(genes, score=c("rank", "phenotype"), summarize=median, cls=NULL, tissue="all", relative=TRUE) {
+doAchillesAnalysis = function(genes=NULL, score=c("rank", "phenotype"), summarize=median, cls=NULL, tissue="all", relative=TRUE) {
 	# Make sure the score argument is valid
 	score = match.arg(score)
 	
 	if (is.null(cls)) {
 		# Get the cell lines for the tissue
 		cls = getCellLines(tissue)
+	}
+	
+	if (is.null(genes)) {
+		genes = rownames(achilles)
 	}
 	
 	if (score == "rank") {
