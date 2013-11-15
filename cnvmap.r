@@ -223,7 +223,7 @@ corCnvExprs = function(cnv.data, exprs.data, genes) {
 ##' @param genes character vector of genes; default: NULL (test all genes in both tumors and normals)
 ##' @param samples vector with sample names to use for the analysis. If this is NULL, all samples will
 ##' be used; default: NULL
-##' @param paired.wilcox boolean indicating whether doing paired or unpaired analysis; default: TRUE
+##' @param paired boolean indicating whether doing paired or unpaired analysis; default: TRUE
 ##' @return named list with gene scores, correlation results, Wilcoxon test results and difference in mean
 ##' @author Andreas Schlicker
 doCnvAnalysis = function(tumors, 
@@ -231,27 +231,23 @@ doCnvAnalysis = function(tumors,
 						 exprs, 
 						 genes=NULL,
 						 samples=NULL,
-						 paired.wilcox=TRUE) {
+						 paired=TRUE) {
   
-  	if (is.null(samples)) {
-    	tumor.samples = colnames(tumors)
-    	normal.samples = colnames(normals)
-  	} else {
-	    tumor.samples = intersect(samples, colnames(tumors))
-    	normal.samples = intersect(samples, colnames(normals))
-  	}
-
-	selected.genes = intersect(rownames(tumors), rownames(normals))
-	if (!is.null(genes)) {
-		selected.genes = intersect(genes, selected.genes)
-	}	
-  	if (length(selected.genes) == 0) {
-	  	warning("No gene of interest is contained in copy number data of both tumors and normals!")
-	  	return(list())
-  	}
-  
-	tumors = tumors[selected.genes, tumor.samples, drop=FALSE]
-  	normals = normals[selected.genes, normal.samples, drop=FALSE]
+	selected.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)
+					 
+	if (length(selected.genes) == 0) {
+		stop("doCnvAnalysis: No gene of interest is contained in gene expression data of both tumors and normals!")
+	}
+					 
+	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired)
+	if (paired && (length(filtered.samples[[1]]) == 0 || length(filtered.samples[[2]]) == 0)) {
+		paired = FALSE
+		filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, FALSE)
+		warning("doCnvAnalysis: No paired expression samples found. Performing unpaired analysis!")
+	}
+					   
+	tumors = tumors[selected.genes[[1]], filtered.samples[[1]], drop=FALSE]
+  	normals = normals[selected.genes[[2]], filtered.samples[[2]], drop=FALSE]
   
   	# Calculate the difference in copy number between tumors and normals
   	# tumor - normal
@@ -296,12 +292,7 @@ summarizeCnv = function(tumors,
 	# If we want to find genes with lower copy number in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
-	significant.genes = intersect(rownames(tumors), rownames(normals))
-	if (!is.null(genes)) {
-		significant.genes = intersect(genes, significant.genes)
-	} else {
-		genes = significant.genes
-	}
+	significant.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)[[1]]
 	
 	cnv.analysis$cors = cnv.analysis$cors[which(rownames(cnv.analysis$cors) %in% significant.genes), ]
 	cnv.analysis$wilcox = cnv.analysis$wilcox[which(names(cnv.analysis$wilcox) %in% significant.genes)]
