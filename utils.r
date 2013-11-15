@@ -291,8 +291,8 @@ meanDiff = function(tumors, normals) {
 ##' @author Andreas Schlicker
 doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 	if (!is.null(restrict)) {
-		samples1 = intersect(vec1, restrict)
-		samples2 = intersect(vec2, restrict)
+		vec1 = intersect(vec1, restrict)
+		vec2 = intersect(vec2, restrict)
 	}
 	
 	if (paired) {
