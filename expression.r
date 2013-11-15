@@ -101,11 +101,13 @@ diffExpr = function(dgel, design) {
 ##' @param tumors expression matrix with samples in the columns and genes in the rows
 ##' @param normals expression matrix with samples in the columns and genes in the rows
 ##' @param genes character vector of genes; default: NULL (test all genes in both tumors and normals)
+##' @param samples vector with sample names to use for the analysis. If this is NULL, all samples will
+##' be used; default: NULL
 ##' @param paired boolean, whether paired or unpaired test is to be performed
 ##' @return named list with two elements: "exprs" matrix with average expression across tumors
 ##' and normals, and "wilcox" being a vector with Wilcoxon test p-values
 ##' @author Andreas Schlicker
-doExprAnalysis = function(tumors, normals, genes=NULL, paired=TRUE) {
+doExprAnalysis = function(tumors, normals, genes=NULL, samples=NULL, paired=TRUE) {
 	selected.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)
 	
 	if (length(selected.genes) == 0) {
