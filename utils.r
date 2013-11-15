@@ -281,3 +281,23 @@ meanDiff = function(tumors, normals) {
 	common.features = intersect(rownames(tumors), rownames(normals))
 	apply(tumors[common.features, , drop=FALSE], 1, mean, na.rm=TRUE) - apply(normals[common.features, , drop=FALSE], 1, mean, na.rm=TRUE)
 }
+
+##' Filters the two input vectors.
+##' @param vec1 first vector of IDs
+##' @param vec2 second vector of IDs
+##' @param restrict vector of IDs that should be retained; default: NULL (retain all)
+##' @param paired retain only IDs that are in both vec1 and vec2
+##' @return a list with the two filtered vectors
+##' @author Andreas Schlicker
+doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
+	if (!is.null(restrict)) {
+		samples1 = intersect(vec1, restrict)
+		samples2 = intersect(vec2, restrict)
+	}
+	
+	if (paired) {
+		matched.samples = intersect(vec1, vec2)
+	}
+	
+	list(vec1, vec2)
+}
