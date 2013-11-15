@@ -225,9 +225,9 @@ summarizeMethylation = function(tumors,
 	
 	# Restrict the analysis to probes that match to the genes of interest
 	if (!is.null(genes)) {
-		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe[genes]), TRUE)
+		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe[genes]), TRUE)[[1]]
 	} else {
-		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)
+		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)[[1]]
 	}
 	
 	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
