@@ -114,7 +114,7 @@ doExprAnalysis = function(tumors, normals, genes=NULL, samples=NULL, paired=TRUE
 		stop("doExprAnalysis: No gene of interest is contained in gene expression data of both tumors and normals!")
 	}
 	
-	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired.wilcox)
+	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired)
 	
 	if (paired && (length(filtered.samples[[1]]) == 0 || length(filtered.samples[[2]]) == 0)) {
 		paired = FALSE
