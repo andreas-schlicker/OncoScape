@@ -106,36 +106,22 @@ diffExpr = function(dgel, design) {
 ##' and normals, and "wilcox" being a vector with Wilcoxon test p-values
 ##' @author Andreas Schlicker
 doExprAnalysis = function(tumors, normals, genes=NULL, paired=TRUE) {
-	if (!is.matrix(tumors)) {
-		tumors = matrixFromVector(tumors)
-	}
-	if (!is.matrix(normals)) {
-		normals = matrixFromVector(normals)
-	}
-	
-	selected.genes = intersect(rownames(tumors), rownames(normals))
-	if (!is.null(genes)) {
-		selected.genes = intersect(genes, selected.genes)
-	}
+	selected.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)
 	
 	if (length(selected.genes) == 0) {
-		warning("No gene of interest is contained in gene expression data of both tumors and normals!")
-		return(list())
+		stop("doExprAnalysis: No gene of interest is contained in gene expression data of both tumors and normals!")
 	}
 	
-	matched.samples = intersect(colnames(tumors), colnames(normals))
-	if (paired && length(matched.samples) == 0) {
+	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired.wilcox)
+	
+	if (paired && (length(filtered.samples[[1]]) == 0 || length(filtered.samples[[2]]) == 0)) {
 		paired = FALSE
-		warning("No paired expression samples found. Performing unpaired analysis!")
+		filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, FALSE)
+		warning("doExprAnalysis: No paired expression samples found. Performing unpaired analysis!")
 	}
 	
-	if (paired) {
-		tumors = tumors[selected.genes, matched.samples, drop=FALSE]
-		normals = normals[selected.genes, matched.samples, drop=FALSE]
-	} else {
-		tumors = tumors[selected.genes, , drop=FALSE]
-		normals = normals[selected.genes, , drop=FALSE]
-	}
+	tumors = tumors[selected.genes[[1]], filtered.samples[[1]], drop=FALSE]
+	normals = normals[selected.genes[[2]], filtered.samples[[2]], drop=FALSE]
 	
 	list(exprs=cbind(tumor=apply(tumors, 1, mean, na.rm=TRUE),
 		 			 normal=apply(normals, 1, mean, na.rm=TRUE)),
@@ -167,12 +153,7 @@ summarizeExpr = function(tumors,
 	# If we want to find genes with lower expression in tumors, get the smallerThan function
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
-	significant.genes = intersect(rownames(tumors), rownames(normals))
-	if (!is.null(genes)) {
-		significant.genes = intersect(genes, significant.genes)
-	} else {
-		genes = significant.genes
-	}
+	significant.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)[[1]]
 	
 	expr.analysis$wilcox = expr.analysis$wilcox[which(names(expr.analysis$wilcox) %in% significant.genes)]
 	expr.analysis$exprs = expr.analysis$exprs[which(rownames(expr.analysis$exprs) %in% significant.genes), ]
