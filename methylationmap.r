@@ -74,22 +74,18 @@ filterProbes = function(tumors, normals,
 ##' the corresponding p-values. Correlation is calculated using all samples contained in both data matrices.
 ##' @param meth.data matrix with probes in rows and samples in columns. Correlations will be computed 
 ##' for all probes contained in this matrix (identified by rownames).
-##' @param meth.ann annotation matrix mapping probes to genes; rownames of the matrix need to be probe IDs,
-##' and column "Gene_symbols_unique" needs to contain all genes it maps to; gene IDs have to match IDs used 
-##' in the expression data.
+##' @param probe2gene named list mapping probes to genes
 ##' @param exprs.data matrix with probes in rows and samples in columns
 ##' @return data.frame with 4 columns: probe, gene, correlation, p.value
 ##' @author Andreas Schlicker
-corMethExprs = function(meth.data, meth.ann, exprs.data) {
+corMethExprs = function(meth.data, probe2gene, exprs.data) {
 	# Samples with methylation and expression data
 	samps = intersect(colnames(meth.data), colnames(exprs.data))
-	# Genes with expression data
-	exprs.genes = rownames(exprs.data)
 	
 	# Correlations
 	res = list()
 	# Length of temporary vectors
-	LENGTH = 100
+	LENGTH = 1000
 	# Temporary vectors
 	temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
 					   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH), 
@@ -99,32 +95,30 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 	k = 1
 	for (x in rownames(meth.data)) {
 		# Get all genes this probe maps to
-		genes = intersect(unlist(strsplit(meth.ann[x, "Gene_symbols_unique"], ";")),
-				exprs.genes)
+		genes = unlist(probe2gene[[x]])
 		
 		# No space left in temporary data.frame
 		if ((i+length(genes)) > LENGTH) {
 			res[[k]] = temp1[1:(i-1), ]
 			k = k + 1
-			temp1 = data.frame(probe=character(LENGTH), gene=character(LENGTH), 
-							   cor=rep(NA, times=LENGTH), p.value=rep(NA, times=LENGTH),
-							   stringsAsFactors=FALSE)
 			i = 1
 		}
 	
 		for (gene in genes) {
-			tempCor = cor.test(exprs.data[gene, samps], 
-							   meth.data[x, samps], 
-							   method="spearman", 
-							   use="pairwise.complete.obs",
-							   exact=FALSE)
-			temp1[i, ] = c(x, gene, tempCor$estimate, tempCor$p.value)
-			i = i + 1
+			tempCor = tryCatch(cor.test(exprs.data[gene, samps], 
+							   			meth.data[x, samps], 
+							   			method="spearman", 
+							   			use="pairwise.complete.obs",
+							   			exact=FALSE),
+							   error=function(e) NA)
+			if (class(tempCor) == "htest") {
+				temp1[i, ] = c(x, gene, tempCor$estimate, tempCor$p.value)
+				i = i + 1
+			}
 		}
 	}
 	# Save the last values
 	res[[k]] = temp1[1:(i-1), ]
-	
 	res = do.call("rbind", res)
 	colnames(res) = c("probe", "gene", "cor", "cor.p")
 	res[, "cor"] = as.numeric(res[, "cor"])
@@ -152,7 +146,7 @@ corMethExprs = function(meth.data, meth.ann, exprs.data) {
 doMethylationAnalysis = function(tumors, 
 								 normals, 
 								 exprs, 
-								 probe.annotation,
+								 probe2gene,
 								 selected.probes=NULL,
 								 samples=NULL, 
 								 paired=FALSE) {
@@ -176,7 +170,7 @@ doMethylationAnalysis = function(tumors,
   	mean.diff = meanDiff(tumors, normals)
   
   	# Correlation between methylation and expression data
-  	cors = corMethExprs(tumors, probe.annotation, exprs)
+  	cors = corMethExprs(tumors, probe2gene, exprs)
 	
 	# Wilcoxon test
 	wilcox = doWilcox(tumors, normals, paired)
