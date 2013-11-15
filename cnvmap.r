@@ -255,9 +255,9 @@ doCnvAnalysis = function(tumors,
   	# --> diff > 0 implies that the gene has lower mean copy number values in normals than in tumors
   	mean.diff = meanDiff(tumors, normals)
   	# Calculate correlation between copy number and expression
-  	cors = corCnvExprs(tumors, exprs, selected.genes)
+  	cors = corCnvExprs(tumors, exprs, selected.genes[[1]])
   	# Run Wilcoxon tests
-  	wilcox = doWilcox(tumors, normals, paired.wilcox)
+  	wilcox = doWilcox(tumors, normals, paired)
   
 	list(diffs=mean.diff, cors=cors, wilcox=wilcox)
 }
