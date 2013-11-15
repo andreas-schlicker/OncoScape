@@ -123,14 +123,23 @@ doExprAnalysis = function(tumors, normals, genes=NULL, paired=TRUE) {
 		return(list())
 	}
 	
-	if (paired && length(intersect(colnames(tumors), colnames(normals))) == 0) {
+	matched.samples = intersect(colnames(tumors), colnames(normals))
+	if (paired && length(matched.samples) == 0) {
 		paired = FALSE
 		warning("No paired expression samples found. Performing unpaired analysis!")
 	}
 	
-	list(exprs=cbind(tumor=apply(tumors[selected.genes, , drop=FALSE], 1, mean, na.rm=TRUE),
-		 			 normal=apply(normals[selected.genes, , drop=FALSE], 1, mean, na.rm=TRUE)),
-		 wilcox=doWilcox(tumors[selected.genes, , drop=FALSE], normals[selected.genes, , drop=FALSE], paired))
+	if (paired) {
+		tumors = tumors[selected.genes, matched.samples, drop=FALSE]
+		normals = normals[selected.genes, matched.samples, drop=FALSE]
+	} else {
+		tumors = tumors[selected.genes, , drop=FALSE]
+		normals = normals[selected.genes, , drop=FALSE]
+	}
+	
+	list(exprs=cbind(tumor=apply(tumors, 1, mean, na.rm=TRUE),
+		 			 normal=apply(normals, 1, mean, na.rm=TRUE)),
+		 wilcox=doWilcox(tumors, normals, paired))
 }
 
 ##' Tests for differential expression between tumors and normals.
