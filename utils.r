@@ -297,6 +297,8 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 	
 	if (paired) {
 		matched.samples = intersect(vec1, vec2)
+		vec1 = matched.samples
+		vec2 = matched.samples
 	}
 	
 	list(vec1, vec2)
