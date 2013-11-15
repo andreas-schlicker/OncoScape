@@ -161,7 +161,7 @@ doMethylationAnalysis = function(tumors,
 		stop("doMethylationAnalysis: No probe of interest is contained in methylation data of both tumors and normals!")
 	}
 	
-	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired.wilcox)
+	filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, paired)
 	
 	if (paired && (length(filtered.samples[[1]]) == 0 || length(filtered.samples[[2]]) == 0)) {
 		paired = FALSE
@@ -179,7 +179,7 @@ doMethylationAnalysis = function(tumors,
   	cors = corMethExprs(tumors, probe.annotation, exprs)
 	
 	# Wilcoxon test
-	wilcox = doWilcox(tumors, normals, paired.wilcox)
+	wilcox = doWilcox(tumors, normals, paired)
 	
 	list(diffs=mean.diff, cors=cors, wilcox=wilcox)
 }
