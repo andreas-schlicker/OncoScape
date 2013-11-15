@@ -155,22 +155,22 @@ doMethylationAnalysis = function(tumors,
 								 probe.annotation,
 								 selected.probes=NULL,
 								 samples=NULL, 
-								 paired.wilcox=FALSE) {
-	if (!is.null(samples)) {
-	  	tumors = tumors[, intersect(samples, colnames(tumors)), drop=FALSE]
-    	normals = normals[, intersect(samples, colnames(normals)), drop=FALSE]
-  	}
-  
-	common.probes = intersect(rownames(tumors), rownames(normals))
-	if (!is.null(selected.probes)) {
-		common.probes = intersect(selected.probes, common.probes)
-	}
-	if (length(common.probes) == 0) {
-		stop("No probes to test in doMethylationAnalysis!")
+								 paired=FALSE) {
+	common.probes = doFilter(rownames(tumors), rownames(normals), selected.probes, TRUE)
+	if (length(common.probes[[1]]) == 0) {
+		stop("doMethylationAnalysis: No probe of interest is contained in methylation data of both tumors and normals!")
 	}
 	
-  	tumors = tumors[common.probes, , drop=FALSE]
-  	normals = normals[common.probes, , drop=FALSE]
+	filtered.samples = filterSamples(colnames(tumors), colnames(normals), samples, paired.wilcox)
+	
+	if (paired && (length(filtered.samples[[1]]) == 0 || length(filtered.samples[[2]]) == 0)) {
+		paired = FALSE
+		filtered.samples = doFilter(colnames(tumors), colnames(normals), samples, FALSE)
+		warning("doMethylationAnalysis: No paired expression samples found. Performing unpaired analysis!")
+	}
+	
+	tumors = tumors[common.probes[[1]], filtered.samples[[1]], drop=FALSE]
+  	normals = normals[common.probes[[2]], filtered.samples[[2]], drop=FALSE]
   
   	# Mean methylation filtering
   	mean.diff = meanDiff(tumors, normals)
@@ -224,12 +224,10 @@ summarizeMethylation = function(tumors,
 	compareBody = switch(regulation, down=smallerThan, up=greaterThan)
 	
 	# Restrict the analysis to probes that match to the genes of interest
-	significant.probes = intersect(rownames(tumors), rownames(normals))
 	if (!is.null(genes)) {
-		significant.probes = intersect(unlist(gene2probe[genes]), significant.probes)
-		all.probes = significant.probes
+		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe[genes]), TRUE)
 	} else {
-		all.probes = unique(unlist(gene2probe))
+		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)
 	}
 	
 	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
