@@ -182,7 +182,9 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
 			
 			# Get the names of the samples that are affected
-			samples = apply(deltaMat - stddev*deltaSd, 1, function(x) { names(which(compare(x, 0))) })
+			testMat = deltaMat - stddev*deltaSd
+			samples = lapply(rownames(testMat), function(x) { names(which(compare(testMat[x, ], 0))) })
+			names(samples) = rownames(testMat)
 			# A sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
 			affected = unlist(lapply(samples, function(x) { length(x) }))
 		} else {
@@ -198,6 +200,11 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 			names(samples) = common
 			# Count affected samples
 			affected = unlist(lapply(samples, function(x) { length(x) }))
+		}
+		
+		if (is.null(samples)) {
+			samples = list()
+			samples[common] = c()
 		}
 		
 		# Add all missing features and resort
