@@ -223,6 +223,7 @@ summarizeMethylation = function(tumors,
 	} else {
 		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)[[1]]
 	}
+	all.probes = significant.probes
 	
 	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
 	meth.analysis$diffs = meth.analysis$diffs[which(names(meth.analysis$diffs) %in% significant.probes)]
