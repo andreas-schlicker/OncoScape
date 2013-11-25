@@ -306,7 +306,7 @@ combineScores = function(scores, genes=NULL) {
 		}
 	}
 	
-	res = matrix(NA, ncol=length(scores), ncol=length(genes))
+	res = matrix(NA, ncol=length(scores), nrow=length(genes))
 	colnames(res) = names(scores)
 	rownames(res) = genes
 	for (n in names(scores)) {
