@@ -175,32 +175,23 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		if (paired) {
 			# Which tumor samples have a matched normal?
 			normFactor = length(matched.samples)
-			
 			# All differences 
 			deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
 			# Per gene standard deviation of the differences
 			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
-			
 			# Get the names of the samples that are affected
-			testMat = deltaMat - stddev*deltaSd
-			samples = lapply(rownames(testMat), function(x) { names(which(compare(testMat[x, ], 0))) })
-			names(samples) = rownames(testMat)
-			# A sample is upregulated (downregulated) if the difference value is greater (smaller) than stddev-many standard deviations
-			affected = unlist(lapply(samples, function(x) { length(x) }))
+			samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
 		} else {
 			# Number of samples to normalize with
 			normFactor = ncol(tumors)
 			# Calculate comparison value across normals
 			normal.cmp = apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
-					   + stddev*apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
-			
+					   - stddev*apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
 			# Which samples are affected by feature
-			# No need to cut off the feature name here
-			samples = lapply(common, function(x) { names(which(compare(tumors[x, ], normal.cmp[x]))) })
-			names(samples) = common
-			# Count affected samples
-			affected = unlist(lapply(samples, function(x) { length(x) }))
+			samples = apply(compare(tumors[x, ], normal.cmp[x]), 1, function(x) { names(which(x)) })
 		}
+		# Count affected samples
+		affected = unlist(lapply(samples, function(x) { length(x) }))
 		
 		if (is.null(samples)) {
 			samples = list()
@@ -302,4 +293,28 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 	}
 	
 	list(vec1, vec2)
+}
+
+##' Comine scores from the given list into a matrix.
+##' Missing scores are set to NA.
+##' @param scores named list with all scores
+##' @param genes vector with gene IDs; default: NULL (take all genes with any score)
+##' @return matrix with scores; genes in rows and score categories in columns
+##' @author Andreas Schlicker
+combineScores = function(scores, genes=NULL) {
+	if (is.null(genes)) {
+		genes = c()
+		for (n in names(scores)) {
+			genes = union(genes, names(scores[[n]]))
+		}
+	}
+	
+	res = matrix(NA, ncol=length(scores), ncol=length(genes))
+	colnames(res) = names(scores)
+	rownames(res) = genes
+	for (n in names(scores)) {
+		res[genes, n] = scores[[n]][genes]
+	}
+	
+	res
 }
