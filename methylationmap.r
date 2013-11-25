@@ -234,25 +234,30 @@ summarizeMethylation = function(tumors,
 	meth.analysis$cors = cbind(meth.analysis$cors, cor.FDR=p.adjust(meth.analysis$cors[, "cor.p"], method="BH"))
 	significant.cors = meth.analysis$cors[which(meth.analysis$cors[, "cor.FDR"] <= cor.FDR), ]
 	
-	tsc.body = c()
-	tsc.rest = c()
+	tsc.body = integer(nrow(significant.cors))
+	bodyCounter = 1
+	tsc.rest = integer(nrow(significant.cors))
+	restCounter = 1
 	if (!gene.region) {
 		tsc.rest = which(significant.cors[, "cor"] < 0)
 	} else {
+		tmpSigCors = significant.cors[, "cor"]
 		for (i in 1:nrow(significant.cors)) {
 			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]]) {
 				# We have a body probe --> positive correlation is expected
 				# Note: This might not be true for 1st exon probes, but they are annotated separately
-				if (significant.cors[i, "cor"] > 0) {
-					tsc.body = c(tsc.body, i)
+				if (tmpSigCors[i] > 0) {
+					tsc.body[bodyCounter] = i
+					bodyCounter = bodyCounter + 1
 				}
-			} else if (significant.cors[i, "cor"] < 0) {
+			} else if (tmpSigCors[i] < 0) {
 				# We have a probe that is not in the gene body --> expect negative correlation
-				tsc.rest = c(tsc.rest, i)
+				tsc.rest[restCounter] = i
+				restCounter = restCounter + 1
 			}
 		}
 	}
-	significant.probes = intersect(significant.probes, unique(significant.cors[c(tsc.body, tsc.rest), "probe"]))
+	significant.probes = intersect(significant.probes, unique(significant.cors[c(tsc.body[1:(bodyCounter-1)], tsc.rest[1:(restCounter-1)]), "probe"]))
 	
 	# Calculate multiple testing correction for remaining probes
 	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, 
