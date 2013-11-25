@@ -177,19 +177,16 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 			normFactor = length(matched.samples)
 			# All differences 
 			deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
-			# Per gene standard deviation of the differences
-			deltaSd = apply(deltaMat, 1, function(x) { sd(x, na.rm=TRUE) })
-			# Get the names of the samples that are affected
-			samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
 		} else {
 			# Number of samples to normalize with
 			normFactor = ncol(tumors)
 			# Calculate comparison value across normals
-			normal.cmp = apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
-					   - stddev*apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
-			# Which samples are affected by feature
-			samples = apply(compare(tumors[x, ], normal.cmp[x]), 1, function(x) { names(which(x)) })
+			deltaMat = tumors[common, , drop=FALSE] - apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
 		}
+		# Per gene standard deviation of the differences
+		deltaSd = apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
+		# Get the names of the samples that are affected
+		samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
 		# Count affected samples
 		affected = unlist(lapply(samples, function(x) { length(x) }))
 		
