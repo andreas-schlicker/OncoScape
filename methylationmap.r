@@ -222,6 +222,7 @@ summarizeMethylation = function(tumors,
 		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe[genes]), TRUE)[[1]]
 	} else {
 		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)[[1]]
+		genes = names(gene2probe)
 	}
 	all.probes = significant.probes
 	
@@ -260,8 +261,8 @@ summarizeMethylation = function(tumors,
 	significant.probes = intersect(significant.probes, unique(significant.cors[c(tsc.body[1:(bodyCounter-1)], tsc.rest[1:(restCounter-1)]), "probe"]))
 	
 	# Calculate multiple testing correction for remaining probes
-	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, 
-								 wilcox.FDR=p.adjust(meth.analysis$wilcox[significant.probes], method="BH")[names(meth.analysis$wilcox)])
+	meth.analysis$wilcox = cbind(wilcox.p=meth.analysis$wilcox, wilcox.FDR=NA)
+	meth.analysis$wilcox[significant.probes, "wilcox.FDR"] = p.adjust(meth.analysis$wilcox[significant.probes, "wilcox.p"], method="BH")
 	# Mean difference filter 
 	significant.probes = intersect(significant.probes, 
 								   union(names(which(compare(meth.analysis$diffs[unique(significant.cors[tsc.rest, "probe"])], diff.cutoff))),
