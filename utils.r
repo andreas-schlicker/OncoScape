@@ -188,7 +188,7 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		# Get the names of the samples that are affected
 		samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
 		# Count affected samples
-		affected = unlist(lapply(samples, function(x) { length(x) }))
+		affected = unlist(lapply(samples, length))
 		
 		if (is.null(samples)) {
 			samples = list()
@@ -198,8 +198,8 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		# Add all missing features and resort
 		affected[missing] = 0
 		affected = affected[features]
-		samples[missing] = c()
 		samples = samples[features]
+		names(samples) = features
 		
 		res = list(summary=cbind(absolute=affected, relative=(affected / normFactor)),
 				   samples=samples)
