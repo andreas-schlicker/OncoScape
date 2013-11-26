@@ -1,125 +1,185 @@
-# Analyzes the mutation data.
-# The method counts the number of mutations for each gene in the list. 
-# Depending on the parameters, all mutations per gene are counted or the number
-# of samples with mutations are counted for each gene.
-# mutations the matrix with the mutation data
-# genes a character vector containing the genes to be analyzed
-# ignore character vector containing the type of mutations that should be 
-# ignored, this vector is used as is; defaults to c("silent")
-# genecol integer giving the index of the gene id column; defaults to 1
-# typecol integer giving the index of the mutation type column; defaults to 9
-# samplecol integer giving the index of the sample id column; defaults to 16
-# chromcol integer giving the index of the chromosome column; defaults to 5
-# startcol integer giving the index of the start column; defaults to 6
-# stopcol integer giving the index of the stop column; defaults to 7
-analyzeMuts = function(mutations, genes=NULL,  
-					   ignore=c("Silent"), samples=NULL,
-                       genecol=1, typecol=9, samplecol=16, 
-                       chromcol=5, startcol=6, stopcol=7) {
+##' Creates the mutation ID from the given indexes.
+##' If "reference" is set, "tumor1" and "tumor2" have to be set as well.
+##' Only the allele that is different from the reference is added to the ID. 
+##' @param data a mutation row
+##' @param indexes vector with indexes to use
+##' @param reference column index for the reference allele; default: NULL
+##' @param tumor1 column index for the first tumor allele; default: NULL
+##' @param tumor2 column index for the second tumor allele; default: NULL
+##' @return mutation ID
+##' @author Andreas Schlicker
+mutationId = function(data, indexes, reference=NULL, tumor1=NULL, tumor2=NULL) {
+	if (!is.null(reference)) {
+		if (data[reference] == data[tumor1]) {
+			indexes = c(indexes, tumor2)
+		} else {
+			indexes = c(indexes, tumor1)
+		}
+	}
+	
+	paste(data[indexes], collapse="_")
+}
+
+##' Analyzes the mutation data.
+##' The method calculates oncogene and tumor suppressor gene scores based on the
+##' 20/20 rule by Vogelstein et al. (doi: 10.1126/science.1235122). 
+##' @param mutations mutation matrix using TCGA format
+##' @param genes character vector with gene IDs; default: NULL (use all genes)
+##' @param ignore character vector with mutation types to ignore; default: "silent"
+##' @param genecol index of the gene id column; default: 1
+##' @param typecol index of the mutation type column; default: 9
+##' @param samplecol index of the sample id column; default: 16
+##' @param chromcol index of the chromosome column; default: 5
+##' @param startcol index of the column with start position; default: 6
+##' @param endcol index of the column with end position; default: 7
+##' @param reference index of the column with reference allele; default: 11
+##' @param tumor1 index of the column with tumor allele 1; default: 12
+##' @param tumor2 index of the column with tumor allele 2; default: 13
+##' @return matrix with genes in rows and values in columns
+##' @author Andreas Schlicker
+doMutationAnalysis = function(mutations, genes=NULL,  
+							  ignore=c("Silent"), samples=NULL,
+                       		  genecol=1, typecol=9, samplecol=16, 
+                       		  chromcol=5, startcol=6, endcol=7,
+							  reference=11, tumor1=12, tumor2=13) {
 				   
 	if (is.null(genes)) { 
 		genes = unique(mutations[, genecol])
 	}
 	
-	res = matrix(0, nrow=length(genes), ncol=4)
-	rownames(res) = genes
-	colnames(res) = c("total mutations", "unique mutations", "mutated samples", "unique samples")
-	
-	locMutations = mutations
+	# Filter samples
 	if (!is.null(samples)) {
-		locMutations = mutations[which(mutations[, samplecol] %in% samples), ]
+		mutations = mutations[which(mutations[, samplecol] %in% samples), ]
 	}
 	
-	res[, 4] = length(unique(locMutations[, samplecol]))
+	if (!is.null(ignore) && length(ignore) > 0) {
+		mutations = mutations[which(!(mutations[, typecol] %in% ignore)), ]
+	}
+	
+	res = matrix(NA, nrow=length(genes), ncol=6)
+	rownames(res) = genes
+	colnames(res) = c("og", "ts", "total.mutations", "unique.mutations", "mutated.samples", "total.samples")
+	res[, "total.samples"] = length(unique(mutations[, samplecol]))
 	
 	for (gene in genes) {
 		# Get all rows with mutations in the current gene that shouldn't be ignored
-		muts = locMutations[which(locMutations[, genecol] == gene & !(locMutations[, typecol] %in% ignore)), ]
+		muts = mutations[which(mutations[, genecol] == gene), ]
+		
+		missense = table(apply(muts[which(muts[, typecol] == "Missense_Mutation"), ], 1, 
+						 function(x) { mutationId(x, indexes=c(chromcol, startcol, endcol)) } ))
+		inframe_del = table(apply(muts[which(muts[, typecol] == "In_Frame_Del"), ], 1, 
+						function(x) { mutationId(x, indexes=c(chromcol, startcol, endcol)) } ))
+		inframe_ins = table(apply(muts[which(muts[, typecol] == "In_Frame_Ins"), ], 1, 
+						function(x) { mutationId(x, indexes=c(chromcol, startcol, endcol), reference, tumor1, tumor2) } ))
+		
+		res[gene, "og"] = 1 - ((length(missense) + length(inframe_del) + length(inframe_ins)) / nrow(muts))
+		#res[gene, "og"] = 1 - ((length(missense) + length(inframe_del) + length(inframe_ins)) / length(which(muts[, typecol] %in% c("Missense_Mutation", "In_Frame_Del", "In_Frame_Ins"))))
+		
+		ts.muts = c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonsense_Mutation", "Splice_Site")
+		res[gene, "ts"] = nrow(muts[which(muts[, typecol] %in% ts.muts), ]) / nrow(muts)
 		
 		# Count total number of mutations
-		res[gene, "total mutations"] = nrow(muts)
+		res[gene, "total.mutations"] = nrow(muts)
 		# Count number of distinct mutations
 		# Distinct is defined as unique combination of chromosome, start and end positions
-		res[gene, "unique mutations"] = length(unique(apply(muts, 1, function(x) { paste(x[chromcol], x[startcol], x[stopcol], sep="_") })))
+		res[gene, "unique.mutations"] = length(unique(apply(muts, 1, function(x) { mutationId(x, c(chromcol, startcol, endcol)) })))
 		# Count the number of distinct samples with mutations in that gene
-		res[gene, "mutated samples"] = length(unique(muts[, samplecol]))
+		res[gene, "mutated.samples"] = length(unique(muts[, samplecol]))
 	}
 	
-	return(res)
+	res
 }
 
-# Summarizes mutation scores. 
-# mutations matrix with genes in the rows and at least the following three columns: 
-# columns 1 through 3 have to be total number of mutations, number of unique 
-# mutations, and number of mutated samples, in this order; 
-# e.g. the output of the "analyzeMuts" function
-# genes a character vector containing the ids of the genes to analyze; ids have
-# to map to row names in the "mutations" matrix
-# ratio.mut.samples floating point number between 0 and 1 giving the minimum percentage of 
-# samples that need to have a mutation in a certain gene; defaults to 0.01
-# uniqueness floating point number between 0 and 1 giving the ratio of unique
-# mutations required; the ratio is calculated as unique/total
-# comparison either "down" or "up"; defines whether the ratio of unique mutations
-# should be larger or smaller than "uniqueness"; oncogenes should have
-# a high uniqueness value and tumor suppressor genes a low uniqueness value
-# Returns a vector giving the score for each gene
-summarizeMutations = function(mutations, genes, ratio.mut.samples=0.01, uniqueness=0.1, comparison=c("smaller", "larger")) {
-  comparison = match.arg(comparison)
+##' Summarizes mutation scores. Genes with an og.score > og.cutoff && ts.score < ts.cutoff.low
+##' are classified as oncogenes. Genes with a ts.score > ts.cutoff || og.score > og.cutoff && ts.score > ts.cutoff.low
+##' are classified as tumor suppressors.
+##' @param mutations mutation matrix using TCGA format
+##' @param mut.analysis output of doMutationAnalysis
+##' @param genes vector of gene IDs to test; default: NULL (test all genes)
+##' @param samples vector of sample IDs to consider; default: NULL (all samples)
+##' @param og.cutoff cut-off for the oncogene score; default: 0.2
+##' @param ts.cutoff cut-off for the tumor suppressor score; default: 0.2
+##' @param ts.cutoff.log cut-off for the low tumor suppressor score; default: 0.05
+##' @param score either "ts" or "og" to score tumor suppressors or oncogenes, respectively
+##' @param genecol index of the gene id column; default: 1
+##' @param typecol index of the mutation type column; default: 9
+##' @param samplecol index of the sample id column; default: 16
+##' @return named list with scores for genes ("scores"), number of affected samples ("summary") and the lists of affected samples ("samples")
+##' @author Andreas Schlicker
+summarizeMutations = function(mutations, mut.analysis, 
+							  genes=NULL, samples=NULL,
+							  og.cutoff=0.2, ts.cutoff=0.2, ts.cutoff.low=0.05, 
+							  score=c("ts", "og"),
+							  genecol=1, typecol=9, samplecol=16) {
+  	score = match.arg(score)
   
-  # Get the correct comparison function
-  # If we want to find genes with few unique mutations, get the smallerThan function
-  # If we want to find genes with many unique mutations, get the greaterThan function
-  compare = switch(comparison, smaller=smallerThan, larger=greaterThan)
+  	if (is.null(genes)) {
+		genes = rownames(mut.analysis)
+  	} else {
+		mutations = mutations[which(mutations[, genecol] %in% genes), ]
+	}
+	
+	if (!is.null(samples)) {
+		mutations = mutations[which(mutations[, samplecol] %in% samples), ]
+	}
   
-  gene.scores = rep(0, length(genes))
-  names(gene.scores) = genes
+  	gene.scores = rep(0, length(genes))
+  	names(gene.scores) = genes
   
-  for (gene in genes) {
-    if (sum(is.na(mutations[gene, ])) == 0) {
-      if (((mutations[gene, 3] / mutations[gene, 4]) > ratio.mut.samples) && compare(mutations[gene, 2] / mutations[gene, 1], uniqueness)) {
-        gene.scores[gene] = 1
-      }
-    }
-  }
+	for (gene in genes) {
+		if (score == "ts") {
+    		gene.scores[gene] = as.integer(mut.analysis[gene, "ts"] > ts.cutoff || (mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] > ts.cutoff.low))
+		} else {
+			gene.scores[gene] = as.integer(mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] < ts.cutoff.low)
+		}
+  	}
+	
+	affected.samples = mutationsAffectedSamples(genes, names(gene.scores)[gene.scores == 1], mutations,
+												score, genecol, typecol, samplecol)
   
-  return(gene.scores)
+  	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples)
 }
 
-##' Count the number of tumors affected by mutations in the given genes. 
-##' @param mut.summary matrix summarizing mutation information as produced by analyzeMuts()
+##' Count the number of tumors affected by mutations in the given genes.
+##' @param genes vector with gene IDs that will be contained in the results
+##' @param test.genes vector with gene IDs that will be tested; default: genes
 ##' @param mutations the matrix with the mutation data
-##' @param genes character vector containing the genes that have to appear in the result
-##' @param test.genes character vector with genes that have to be tested; default: genes
-##' @param ignore character vector containing the type of mutations that should be 
-##' ignored, this vector is used as is; defaults to c("silent")
-##' @param samples sample IDs the analysis is restricted to; default: NULL
-##' @param genecol integer giving the index of the gene id column or the column name; defaults to 1
-##' @param typecol integer giving the index of the mutation type column or the column name; defaults to 9
-##' @param samplecol integer giving the index of the sample id column or the column name; defaults to 16
+##' @param type either "ts" or "og" to get samples with tumor suppressor or oncogene mutations, respectively
+##' @param genecol index of the gene id column; default: 1
+##' @param typecol index of the mutation type column; default: 9
+##' @param samplecol index of the sample id column; default: 16
 ##' @return named list with two components; "summary" is a matrix with absolute (1st column) 
 ##' and relative (2nd column) numbers of affected samples; "samples" is a named list with all 
 ##' samples affected by a change in this feature
 ##' @author Andreas Schlicker
-mutationsAffectedSamples = function(mut.summary, mutations, 
-									genes, test.genes=genes, 
-									ignore=c("Silent"), samples=NULL,
-									genecol=1, typecol=9, samplecol=16) {  
-	# Filter samples
-	locMutations = mutations
-	if (!is.null(samples)) {
-		locMutations = mutations[which(mutations[, samplecol] %in% samples), ]
-	}
-	# Filter out mutations that should be ignored
-	locMutations = locMutations[which(!(locMutations[, typecol] %in% ignore)), ]
-	# Filter genes
-	locMutations = locMutations[which(locMutations[, genecol] %in% test.genes), ]
+mutationsAffectedSamples = function(genes, test.genes=genes,
+									mutations, type=c("ts", "og"),
+									genecol=1, typecol=9, sampleCol=16) {  
 	
-	res = lapply(genes,
-				 function(x) { locMutations[which(locMutations[, genecol] == x), samplecol] })
-	names(res) = genes
+	type = match.arg(type)
+	# Filter mutations
+	if (type == "ts") {
+		mutations = mutations[which(mutations[, typecol] %in% c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonsense_Mutation", "Splice_Site")), ]
+	} else {
+		mutations = mutations[which(mutations[, typecol] %in% c("Missense_Mutation", "In_Frame_Del", "In_Frame_Ins")), ]
+	}	
 	
-	abs.samples = sapply(res, length)
+	normFactor = length(unique(mutations[, samplecol]))
 	
-	return(list(summary=cbind(absolute=abs.samples, relative=(abs.samples / mut.summary[, "unique samples"])),
-				samples=res))
+	# Which genes to test are in the mutation data?
+	common = intersect(test.genes, unique(mutations[, genecol]))
+	# Which genes should appear in the output but are missing?
+	missing = setdiff(genes, common)
+	
+	samples = lapply(common, function(x) { unique(mutations[which(mutations[, genecol] == x), samplecol]) })
+	names(samples) = common
+	affected = unlist(lapply(samples, length))
+	
+	# Add all missing features and resort
+	affected[missing] = 0
+	affected = affected[genes]
+	samples = samples[genes]
+	names(samples) = genes
+	
+	list(summary=cbind(absolute=affected, relative=affected/normFactor), samples=samples)
 }
