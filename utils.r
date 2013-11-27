@@ -324,7 +324,9 @@ combineScores = function(scores, genes=NULL) {
 parseConfigFile = function(config) {
 	require(stringr) || stop("Can't load required package \"stringr\"!")
 	
-	paste("--", readLines(config), sep="")
+	paste("--", sapply(readLines(config), 
+					   function(x) { tokens=str_split(x, "=")[[1]]; 
+						   			 paste(str_trim(tokens[1]), str_trim(tokens[2]), sep="=") }), sep="")
 }
 
 ##' Creates a list of "OptionParserOption" objects for creating an option parser.
