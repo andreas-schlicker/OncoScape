@@ -331,7 +331,7 @@ parseConfigFile = function(config) {
 		if (line != "" && line != "\n") {
 			tokens = str_split(line, "=")[[1]]
 			# The name of the options is equal to the long form of the option
-			res[i] = paste("--", str_trim(tokens[1]), "==", str_trim(tokens[2]), sep="")
+			res[i] = paste("--", str_trim(tokens[1]), "=", str_trim(tokens[2]), sep="")
 			i = i + 1
 		}
 	}
