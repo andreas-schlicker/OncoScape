@@ -315,3 +315,59 @@ combineScores = function(scores, genes=NULL) {
 	
 	res
 }
+
+##' Parses a configuration file into command line arguments format.
+##' The resulting vector can be passed on to the option parser.
+##' @param config absolute filename of the configuration file
+##' @return vector with arguments and values
+##' @author Andreas Schlicker
+parseConfigFile = function(config) {
+	require(stringr) || stop("Can't load required package \"stringr\"!")
+	
+	lines = readLines(config)
+	res = character(length(lines))
+	i = 1
+	for (line in lines) {
+		if (line != "" && line != "\n") {
+			tokens = str_split(line, "=")[[1]]
+			# The name of the options is equal to the long form of the option
+			res[i] = paste("--", str_trim(tokens[1]), "==", str_trim(tokens[2]), sep="")
+			i = i + 1
+		}
+	}
+	
+	res[1:(i-1)]
+}
+
+##' Creates a list of "OptionParserOption" objects for creating an option parser.
+##' @param options vector of option names that should be contained in the list. 
+##' Option names are identical to long form of options and to names in the final 
+##' parsed list.
+##' @return list with OptionParserOption objects
+##' @author Andreas Schlicker
+getOptionList = function(options) {
+	require(optparse) || stop("Can't load required package \"optparse\"!")
+	
+	all = list(config=make_option(c("-c", "--config"), type="character", help="Configuration file"),
+		 	   input=make_option(c("-i", "--input"), type="character", help="RData file with precomputed results"),
+		 	   output=make_option(c("-o", "--output"), type="character", help="RData output file for saving results"),
+			   genes=make_option(c("-g", "--genes"), type="character", help="Gene file", default=""),
+			   genecol=make_option("--genecolumn", type="integer", help="Column with gene IDs in the gene file", default=1),
+			   samples=make_option(c("-s", "--samples"), type="character", help="Sample file", default=""),
+			   threads=make_option(c("-t", "--threads"), type="integer", help="Number of parallel threads", default=11),
+			   cancer=make_option("--cancers", type="character", help="Comma-separated list of cancer types to test", default="all"),
+			   prefix=make_option(c("-p", "--prefix"), type="character", help="Plotting file prefix", default=""),
+			   notopgenes=make_option(c("-n", "--notopgenes"), type="integer", help="Number of top genes", default=10))
+	   
+	all[options]
+}
+
+##' Parses command line options.
+##' @param options list with OptionParserOption objects
+##' @args character vector with command line options
+##' @return named list with all options
+##' @author Andreas Schlicker
+parseOptions = function(options, args) {
+	require(optparse) || stop("Can't load required package \"optparse\"!")
+	parse_args(OptionParser(option_list=options), args=args)
+}
