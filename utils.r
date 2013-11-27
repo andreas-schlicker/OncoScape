@@ -319,24 +319,12 @@ combineScores = function(scores, genes=NULL) {
 ##' Parses a configuration file into command line arguments format.
 ##' The resulting vector can be passed on to the option parser.
 ##' @param config absolute filename of the configuration file
-##' @return vector with arguments and values
+##' @return vector formatted as command line arguments
 ##' @author Andreas Schlicker
 parseConfigFile = function(config) {
 	require(stringr) || stop("Can't load required package \"stringr\"!")
 	
-	lines = readLines(config)
-	res = character(length(lines))
-	i = 1
-	for (line in lines) {
-		if (line != "" && line != "\n") {
-			tokens = str_split(line, "=")[[1]]
-			# The name of the options is equal to the long form of the option
-			res[i] = paste("--", str_trim(tokens[1]), "=", str_trim(tokens[2]), sep="")
-			i = i + 1
-		}
-	}
-	
-	res[1:(i-1)]
+	paste("--", readLines(config), sep="")
 }
 
 ##' Creates a list of "OptionParserOption" objects for creating an option parser.
