@@ -290,3 +290,66 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 	
 	return(datac)
 }
+
+##' Sorts elements in the input data frame according to the given score in ascending order.
+##' Used for plotting the results of a prioritization run.
+##' @param inpData input data frame
+##' @param score score type to use for sorting
+##' @param column column name or index containing the elements to sort
+##' @return character vector with sorted elements
+##' @author Andreas Schlicker
+getOrder = function(inpData, score, column) {
+	# Sorted vector
+	res = rep(0, times=length(unique(inpData[, column])))
+	# Unique elements to sort
+	names(res) = unique(inpData[, column])
+	for (n in names(res)) {
+		# For each element, sum all scores
+		res[n] = sum(inpData[intersect(which(inpData[, "score.type"]==score), which(inpData[, column]==n)), "score"])
+	}
+	
+	# Return the elements sorted according to ascending sum of scores
+	names(sort(res))
+}
+
+getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.low="white", color.mid=NULL, color.high="black", title="", ylab="", xlab="") {
+	p = ggplot(dataFrame, aes(x=cancer, y=gene)) + 
+			geom_tile(aes(fill=score), color = "white") + 
+			labs(title=title, x=xlab, y=ylab) +
+			theme(panel.background=element_rect(color="white", fill="white"),
+					axis.ticks=element_blank(), 
+					axis.text.x=element_text(color="grey50", face="bold")) +
+			yaxis.theme
+	
+	if (!is.null(color.mid)) {
+		p = p + scale_fill_gradient2(low=color.low, mid=color.mid, high=color.high)
+	} else {
+		p = p + scale_fill_gradient(low=color.low, high=color.high)
+	}
+	if (!is.null(labels)) {
+		p = p + scale_y_discrete(breaks=breaks, labels=labels)
+	}
+	
+	p
+}
+
+getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), ncol=3, title="", xlab="", ylab="") {
+	plot.type = match.arg(plot.type)
+	
+	p = ggplot(dataFrame, aes(x=score, fill=score.type, color=score.type)) + 
+			scale_fill_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "grey60")) +
+			scale_color_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "grey60")) +
+			scale_x_continuous(breaks=-4:4) + 
+			facet_wrap(formula(facets), ncol=ncol) +
+			labs(title=title, x=xlab, y=ylab) + 
+			theme(axis.ticks=element_blank(), 
+					axis.text.x=element_text(colour="grey50", face="bold"),
+					axis.text.y=element_text(colour="grey50", face="bold"))
+	
+	if (plot.type == "histogram") {
+		p = p + geom_histogram(binwidth=0.5, position="dodge")
+	} else {
+		p = p + geom_density(size=1, alpha=0.3)
+	}
+	p
+}
