@@ -22,7 +22,7 @@ combineScores = function(scores, genes=NULL) {
 	colnames(res) = names(scores)
 	rownames(res) = genes
 	for (n in names(scores)) {
-		res[names(scores[[n]]), n] = scores[[n]]
+		res[intersect(genes, names(scores[[n]])), n] = scores[[n]][intersect(genes, names(scores[[n]]))]
 	}
 	
 	res
