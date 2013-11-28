@@ -292,25 +292,32 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 	list(vec1, vec2)
 }
 
-##' Comine scores from the given list into a matrix.
-##' Missing scores are set to NA.
-##' @param scores named list with all scores
-##' @param genes vector with gene IDs; default: NULL (take all genes with any score)
-##' @return matrix with scores; genes in rows and score categories in columns
+##' Return the vector if "gene" is contained in the list and 
+##' an empty vector otherwise.
+##' @param gene gene to pull out
+##' @param inpList named input list
+##' @return vector from the list
 ##' @author Andreas Schlicker
-combineScores = function(scores, genes=NULL) {
-	if (is.null(genes)) {
-		genes = c()
-		for (n in names(scores)) {
-			genes = union(genes, names(scores[[n]]))
-		}
+ifPresent = function(gene, inpList) {
+	if (is.null(inpList[[gene]])) { 
+		res = c() 
+	} else {
+		res = inpList[[gene]]
 	}
 	
-	res = matrix(NA, ncol=length(scores), nrow=length(genes))
-	colnames(res) = names(scores)
-	rownames(res) = genes
-	for (n in names(scores)) {
-		res[genes, n] = scores[[n]][genes]
+	res
+}
+
+##' Return the element if "gene" is part of the matrx or NA.
+##' @param gene gene to pull out
+##' @param inpMat input matrix
+##' @return element of the matrix
+##' @author Andreas Schlicker
+ifPresentMatrix = function(gene, inpMat, column) {
+	if (x %in% rownames(inpMat)) {
+		res = inpMat[x, column]
+	} else {
+		res = NA 
 	}
 	
 	res
