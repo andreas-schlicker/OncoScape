@@ -111,8 +111,9 @@ summarizeMutations = function(mutations, mut.analysis,
 							  og.cutoff=0.2, ts.cutoff=0.2, ts.cutoff.low=0.05, 
 							  score=c("ts", "og"),
 							  genecol=1, typecol=9, samplecol=16) {
-  	score = match.arg(score)
-  
+	score = match.arg(score)
+    scoreLogical = switch(score, ts=TRUE, og=FALSE)
+	
   	if (is.null(genes)) {
 		genes = rownames(mut.analysis)
   	} else {
@@ -125,9 +126,8 @@ summarizeMutations = function(mutations, mut.analysis,
   
   	gene.scores = rep(0, length(genes))
   	names(gene.scores) = genes
-  
-	for (gene in genes) {
-		if (score == "ts") {
+  	for (gene in genes) {
+		if (scoreLogical) {
     		gene.scores[gene] = as.integer(mut.analysis[gene, "ts"] > ts.cutoff || (mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] > ts.cutoff.low))
 		} else {
 			gene.scores[gene] = as.integer(mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] < ts.cutoff.low)
@@ -136,8 +136,7 @@ summarizeMutations = function(mutations, mut.analysis,
 	
 	affected.samples = mutationsAffectedSamples(genes, names(gene.scores)[gene.scores == 1], mutations,
 												score, genecol, typecol, samplecol)
-  
-  	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples)
+	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples)
 }
 
 ##' Count the number of tumors affected by mutations in the given genes.
@@ -154,7 +153,7 @@ summarizeMutations = function(mutations, mut.analysis,
 ##' @author Andreas Schlicker
 mutationsAffectedSamples = function(genes, test.genes=genes,
 									mutations, type=c("ts", "og"),
-									genecol=1, typecol=9, sampleCol=16) {  
+									genecol=1, typecol=9, samplecol=16) {  
 	
 	type = match.arg(type)
 	# Filter mutations
