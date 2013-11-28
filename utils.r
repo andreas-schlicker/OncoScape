@@ -167,29 +167,32 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		# All features that we won't test but that should be contained in the results
 		missing = setdiff(features, common)
 		
-		matched.samples = intersect(colnames(tumors), colnames(normals))
-		if (length(matched.samples) == 0) {
-			paired = FALSE
-			warning("countAffectedSamples: No paired samples found. Performing unpaired analysis!")
+		samples = NULL
+		affected = c()
+		if (length(common) > 0) {
+			matched.samples = intersect(colnames(tumors), colnames(normals))
+			if (length(matched.samples) == 0) {
+				paired = FALSE
+				warning("countAffectedSamples: No paired samples found. Performing unpaired analysis!")
+			}
+			if (paired) {
+				# Which tumor samples have a matched normal?
+				normFactor = length(matched.samples)
+				# All differences 
+				deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
+			} else {
+				# Number of samples to normalize with
+				normFactor = ncol(tumors)
+				# Calculate comparison value across normals
+				deltaMat = tumors[common, , drop=FALSE] - apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
+			}
+			# Per gene standard deviation of the differences
+			deltaSd = apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
+			# Get the names of the samples that are affected
+			samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
+			# Count affected samples
+			affected = unlist(lapply(samples, length))
 		}
-		if (paired) {
-			# Which tumor samples have a matched normal?
-			normFactor = length(matched.samples)
-			# All differences 
-			deltaMat = tumors[common, matched.samples, drop=FALSE] - normals[common, matched.samples, drop=FALSE]
-		} else {
-			# Number of samples to normalize with
-			normFactor = ncol(tumors)
-			# Calculate comparison value across normals
-			deltaMat = tumors[common, , drop=FALSE] - apply(normals[common, , drop=FALSE], 1, mean, na.rm=TRUE)
-		}
-		# Per gene standard deviation of the differences
-		deltaSd = apply(normals[common, , drop=FALSE], 1, sd, na.rm=TRUE)
-		# Get the names of the samples that are affected
-		samples = apply(compare(deltaMat - stddev*deltaSd, 0), 1, function(x) { names(which(x)) })
-		# Count affected samples
-		affected = unlist(lapply(samples, length))
-		
 		if (is.null(samples)) {
 			samples = list()
 			samples[common] = c()
