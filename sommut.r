@@ -112,27 +112,27 @@ summarizeMutations = function(mutations, mut.analysis,
 							  score=c("ts", "og"),
 							  genecol=1, typecol=9, samplecol=16) {
 	score = match.arg(score)
-    scoreLogical = switch(score, ts=TRUE, og=FALSE)
 	
   	if (is.null(genes)) {
 		genes = rownames(mut.analysis)
   	} else {
 		mutations = mutations[which(mutations[, genecol] %in% genes), ]
 	}
+	common = intersect(genes, mutations[, genecol])
+	missing = setdiff(genes, mutations[, genecol])
 	
 	if (!is.null(samples)) {
 		mutations = mutations[which(mutations[, samplecol] %in% samples), ]
 	}
   
-  	gene.scores = rep(0, length(genes))
-  	names(gene.scores) = genes
-  	for (gene in genes) {
-		if (scoreLogical) {
-    		gene.scores[gene] = as.integer(mut.analysis[gene, "ts"] > ts.cutoff || (mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] > ts.cutoff.low))
-		} else {
-			gene.scores[gene] = as.integer(mut.analysis[gene, "og"] > og.cutoff && mut.analysis[gene, "ts"] < ts.cutoff.low)
-		}
-  	}
+	if (score == "ts") {
+		gene.scores = as.integer((mut.analysis[, "ts"] > ts.cutoff | (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] > ts.cutoff.low))[common])
+	} else {
+		gene.scores = as.integer((mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
+	}
+	names(gene.scores) = rownames(mut.analysis)
+	gene.scores[missing] = 0
+	gene.scores = gene.scores[genes]
 	
 	affected.samples = mutationsAffectedSamples(genes, names(gene.scores)[gene.scores == 1], mutations,
 												score, genecol, typecol, samplecol)
