@@ -302,28 +302,24 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 ##' @return vector from the list
 ##' @author Andreas Schlicker
 ifPresent = function(gene, inpList) {
-	if (is.null(inpList[[gene]])) { 
-		res = c() 
+	if (gene %in% names(inpList)) { 
+		res = inpList[[gene]] 
 	} else {
-		res = inpList[[gene]]
+		res = c()
 	}
 	
 	res
 }
 
-##' Return the element if "gene" is part of the matrx or NA.
-##' @param gene gene to pull out
-##' @param inpMat input matrix
-##' @return element of the matrix
+##' Adds NA values for missing elements and returns the vector sorted by name.
+##' @param genes elements that have to be in the resulting vector
+##' @param inpVec vector of interest
+##' @return sorted vector
 ##' @author Andreas Schlicker
-ifPresentMatrix = function(gene, inpMat, column) {
-	if (x %in% rownames(inpMat)) {
-		res = inpMat[x, column]
-	} else {
-		res = NA 
-	}
-	
-	res
+sortAddMissing = function(genes, inpVec) {
+	missing = setdiff(genes, names(inpVec))
+	inpVec[missing] = NA
+	inpVec[genes]
 }
 
 ##' Parses a configuration file into command line arguments format.
