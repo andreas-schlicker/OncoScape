@@ -67,20 +67,28 @@ filterProbes = function(tumors, normals,
 		}
 	}
 	
-	list(selected.probes=res.selprobes, gene2probe=res.g2p)
+	res.g2p.flat = vector("list", length(res.g2p))
+	names(res.g2p.flat) = names(res.g2p)
+	for (i in 1:length(res.g2p)) {
+		res.g2p.flat[[i]] = unlist(res.g2p[[i]])
+	}
+	
+	list(selected.probes=res.selprobes, gene2probe=res.g2p, gene2probe.flat=res.g2p.flat)
 }
 
 ##' Calculates Spearman correlation between methylation probes and expression of the corresponding genes and 
 ##' the corresponding p-values. Correlation is calculated using all samples contained in both data matrices.
 ##' @param meth.data matrix with probes in rows and samples in columns. Correlations will be computed 
 ##' for all probes contained in this matrix (identified by rownames).
-##' @param probe2gene named list mapping probes to genes
+##' @param probe2gene.flat named list mapping probes to genes
 ##' @param exprs.data matrix with probes in rows and samples in columns
 ##' @return data.frame with 4 columns: probe, gene, correlation, p.value
 ##' @author Andreas Schlicker
-corMethExprs = function(meth.data, probe2gene, exprs.data) {
+corMethExprs = function(meth.data, probe2gene.flat, exprs.data) {
 	# Samples with methylation and expression data
 	samps = intersect(colnames(meth.data), colnames(exprs.data))
+	exprs.data = exprs.data[, samps, drop=FALSE]
+	meth.data = meth.data[, samps, drop=FALSE]
 	
 	# Correlations
 	res = list()
@@ -93,9 +101,13 @@ corMethExprs = function(meth.data, probe2gene, exprs.data) {
 	# Counter for current element in temporary vector
 	i = 1
 	k = 1
-	for (x in rownames(meth.data)) {
+	testProbes = rownames(meth.data)
+	for (j in 1:length(testProbes)) {
+		tmpMeth = meth.data[j, ]
+		x = testProbes[j]
+		
 		# Get all genes this probe maps to
-		genes = unlist(probe2gene[[x]])
+		genes = unlist(probe2gene.flat[[x]])
 		
 		# No space left in temporary data.frame
 		if ((i+length(genes)) > LENGTH) {
@@ -105,8 +117,8 @@ corMethExprs = function(meth.data, probe2gene, exprs.data) {
 		}
 	
 		for (gene in genes) {
-			tempCor = tryCatch(cor.test(exprs.data[gene, samps], 
-							   			meth.data[x, samps], 
+			tempCor = tryCatch(cor.test(exprs.data[gene, ], 
+							   			meth.data[x, ], 
 							   			method="spearman", 
 							   			use="pairwise.complete.obs",
 							   			exact=FALSE),
@@ -170,7 +182,7 @@ doMethylationAnalysis = function(tumors,
   	mean.diff = meanDiff(tumors, normals)
   
   	# Correlation between methylation and expression data
-  	cors = corMethExprs(tumors, probe2gene, exprs)
+	cors3 = corMethExprs(tumors, probe2gene, exprs)
 	
 	# Wilcoxon test
 	wilcox = doWilcox(tumors, normals, paired)
@@ -183,7 +195,7 @@ doMethylationAnalysis = function(tumors,
 ##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
 ##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
 ##' @param meth.analysis list returned by doMethylationAnalysis()
-##' @param gene2probe nested list mapping probes to genes and gene regions
+##' @param gene2probe.flat named list mapping probes to genes and gene regions
 ##' @param probe2gene nested list mapping genes to probes and gene regions
 ##' @param genes character vector of genes; default: NULL (test all genes in tumors)
 ##' @param wilcox.FDR significance cut-off for Wilcoxon FDR; default=0.05
@@ -198,7 +210,7 @@ doMethylationAnalysis = function(tumors,
 summarizeMethylation = function(tumors,
 				 				normals,
 							 	meth.analysis,
-							 	gene2probe,
+							 	gene2probe.flat,
 							 	probe2gene,
 							 	genes=NULL,
 							 	wilcox.FDR=0.05, 
@@ -219,10 +231,10 @@ summarizeMethylation = function(tumors,
 	
 	# Restrict the analysis to probes that match to the genes of interest
 	if (!is.null(genes)) {
-		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe[genes]), TRUE)[[1]]
+		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe.flat[genes]), TRUE)[[1]]
 	} else {
 		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)[[1]]
-		genes = names(gene2probe)
+		genes = names(gene2probe.flat)
 	}
 	all.probes = significant.probes
 	
@@ -242,16 +254,17 @@ summarizeMethylation = function(tumors,
 	if (!gene.region) {
 		tsc.rest = which(significant.cors[, "cor"] < 0)
 	} else {
-		tmpSigCors = significant.cors[, "cor"]
+		tmpSigCorsGreater = significant.cors[, "cor"] > 0
+		tmpSigCorsSamller = significant.cors[, "cor"] < 0
 		for (i in 1:nrow(significant.cors)) {
 			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]]) {
 				# We have a body probe --> positive correlation is expected
 				# Note: This might not be true for 1st exon probes, but they are annotated separately
-				if (tmpSigCors[i] > 0) {
+				if (tmpSigCorsGreater[i]) {
 					tsc.body[bodyCounter] = i
 					bodyCounter = bodyCounter + 1
 				}
-			} else if (tmpSigCors[i] < 0) {
+			} else if (tmpSigCorsSamller[i]) {
 				# We have a probe that is not in the gene body --> expect negative correlation
 				tsc.rest[restCounter] = i
 				restCounter = restCounter + 1
@@ -297,7 +310,7 @@ summarizeMethylation = function(tumors,
 	colnames(summary) = c("absolute", "relative")
 	samples = list()
 	for (gene in genes) {
-		allProbes = unlist(gene2probe[[gene]])
+		allProbes = gene2probe.flat[[gene]]
 		# Get the ratio of (#significant probes with higher methylation) / (#all probes)
 		gene.scores[gene] = length(intersect(significant.probes, allProbes)) / length(allProbes)
 		
