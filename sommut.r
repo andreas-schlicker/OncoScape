@@ -26,6 +26,11 @@ mutationId = function(data, indexes, reference=NULL, tumor1=NULL, tumor2=NULL) {
 ##' @param mutations mutation matrix using TCGA format
 ##' @param genes character vector with gene IDs; default: NULL (use all genes)
 ##' @param ignore character vector with mutation types to ignore; default: "silent"
+##' @param samples vector of samples to restrict the analysis to; default: NULL
+##' @param filtercol index of the column that should be used for filtering; default: NULL
+##' (no filtering)
+##' @param filter threshold for filtering mutations; only mutations with score >= "filter"
+##' will be taken into account; default: 1
 ##' @param genecol index of the gene id column; default: 1
 ##' @param typecol index of the mutation type column; default: 9
 ##' @param samplecol index of the sample id column; default: 16
@@ -39,6 +44,7 @@ mutationId = function(data, indexes, reference=NULL, tumor1=NULL, tumor2=NULL) {
 ##' @author Andreas Schlicker
 doMutationAnalysis = function(mutations, genes=NULL,  
 							  ignore=c("Silent"), samples=NULL,
+							  filtercol=NULL, filter=1,
                        		  genecol=1, typecol=9, samplecol=16, 
                        		  chromcol=5, startcol=6, endcol=7,
 							  reference=11, tumor1=12, tumor2=13) {
@@ -54,6 +60,10 @@ doMutationAnalysis = function(mutations, genes=NULL,
 	
 	if (!is.null(ignore) && length(ignore) > 0) {
 		mutations = mutations[which(!(mutations[, typecol] %in% ignore)), ]
+	}
+	
+	if (!is.null(filtercol)) {
+		mutations = mutations[which(mutations[, filtercol] >= filter), ]
 	}
 	
 	res = matrix(NA, nrow=length(genes), ncol=6)
