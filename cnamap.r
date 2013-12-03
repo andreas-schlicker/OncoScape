@@ -293,6 +293,9 @@ summarizeCna = function(tumors,
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
 	significant.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)[[1]]
+	if (is.null(genes)) {
+		genes = significant.genes
+	}
 	
 	cna.analysis$cors = cna.analysis$cors[which(rownames(cna.analysis$cors) %in% significant.genes), ]
 	cna.analysis$wilcox = cna.analysis$wilcox[which(names(cna.analysis$wilcox) %in% significant.genes)]
