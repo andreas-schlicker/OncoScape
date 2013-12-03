@@ -156,6 +156,9 @@ summarizeExpr = function(tumors,
 	compare = switch(regulation, down=smallerThan, up=greaterThan)
 	
 	significant.genes = doFilter(rownames(tumors), rownames(normals), genes, TRUE)[[1]]
+	if (is.null(genes)) {
+		genes = significant.genes
+	}
 	
 	expr.analysis$wilcox = expr.analysis$wilcox[which(names(expr.analysis$wilcox) %in% significant.genes)]
 	expr.analysis$exprs = expr.analysis$exprs[which(rownames(expr.analysis$exprs) %in% significant.genes), ]
