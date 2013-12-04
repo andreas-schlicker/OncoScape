@@ -204,6 +204,12 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		samples = samples[features]
 		names(samples) = features
 		
+		# This only happens if no feature was to be tested. 
+		# The actual value isn't important but has to be != 0
+		if (!exists("normFactor")) {
+			normFactor = 1
+		}
+		
 		res = list(summary=cbind(absolute=affected, relative=(affected / normFactor)),
 				   samples=samples)
 	} else {
