@@ -140,7 +140,7 @@ summarizeMutations = function(mutations, mut.analysis,
 	} else {
 		gene.scores = as.integer((mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
 	}
-	names(gene.scores) = rownames(mut.analysis)
+	names(gene.scores) = rownames(genes)
 	gene.scores[missing] = 0
 	gene.scores = gene.scores[genes]
 	
