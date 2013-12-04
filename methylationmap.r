@@ -107,7 +107,7 @@ corMethExprs = function(meth.data, probe2gene.flat, exprs.data) {
 		x = testProbes[j]
 		
 		# Get all genes this probe maps to
-		genes = unlist(probe2gene.flat[[x]])
+		genes = probe2gene.flat[[x]]
 		
 		# No space left in temporary data.frame
 		if ((i+length(genes)) > LENGTH) {
@@ -146,7 +146,7 @@ corMethExprs = function(meth.data, probe2gene.flat, exprs.data) {
 ##' @param tumors methylation matrix for tumor samples with probes in rows and samples in columns
 ##' @param normals methylation matrix for normal samples with probes in rows and samples in columns
 ##' @param exprs gene expression matrix with genes in rows and samples in columns
-##' @param probe.annotation methylation probe annotation matrix. 
+##' @param probe2gene.flat named list mapping probes to genes 
 ##' @param selected.probes vector with all probes to investigate (as returned by genesAndProbes()); 
 ##' default: NULL (test all probes in both tumors and normals) 
 ##' @param samples vector with samples to include in the analysis, if == NULL, all samples are used; default: NULL
@@ -158,7 +158,7 @@ corMethExprs = function(meth.data, probe2gene.flat, exprs.data) {
 doMethylationAnalysis = function(tumors, 
 								 normals, 
 								 exprs, 
-								 probe2gene,
+								 probe2gene.flat,
 								 selected.probes=NULL,
 								 samples=NULL, 
 								 paired=FALSE) {
@@ -182,7 +182,7 @@ doMethylationAnalysis = function(tumors,
   	mean.diff = meanDiff(tumors, normals)
   
   	# Correlation between methylation and expression data
-	cors3 = corMethExprs(tumors, probe2gene, exprs)
+	cors = corMethExprs(tumors, probe2gene.flat, exprs)
 	
 	# Wilcoxon test
 	wilcox = doWilcox(tumors, normals, paired)
