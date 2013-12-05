@@ -312,6 +312,19 @@ getOrder = function(inpData, score, column) {
 	names(sort(res))
 }
 
+##' Generate a heatmap of prioritization scores. Used for result heatmaps in the plot_prioritize script.
+##' @param dataFrame approprately formatted data.frame
+##' @param yaxis.theme ggplot2 theme for the y-axis
+##' @param labels vector with labels for elements in rows; default: NULL (no labels
+##' @param breaks vector with y-axis breaks; is only used if labels != NULL; default: NULL
+##' @param color.low color for the lowest value; default: white
+##' @param color.mid color for middle values; default: NULL
+##' @param color.high color for high values; default: black
+##' @param title main title for the plot; default: ""
+##' @param ylab title for the y-axis of the plot; default: ""
+##' @param xlab title for the x-axis of the plot; default: ""
+##' @return a ggplot2 object
+##' @author Andreas Schlicker
 getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.low="white", color.mid=NULL, color.high="black", title="", ylab="", xlab="") {
 	p = ggplot(dataFrame, aes(x=cancer, y=gene)) + 
 			geom_tile(aes(fill=score), color = "white") + 
@@ -333,6 +346,16 @@ getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.lo
 	p
 }
 
+##' Generate a distribution plot for prioritization results. 
+##' @param dataFrame approprately formatted data.frame
+##' @param facets string that defines a formula for generating the facets of the plot
+##' @param plot.type either "histogram" or "density"; default: "histogram"
+##' @param ncol number of facets to plot per row; default: 3
+##' @param title main title for the plot; default: ""
+##' @param ylab title for the y-axis of the plot; default: ""
+##' @param xlab title for the x-axis of the plot; default: ""
+##' @return a ggplot2 object
+##' @author Andreas Schlicker
 getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), ncol=3, title="", xlab="", ylab="") {
 	plot.type = match.arg(plot.type)
 	
@@ -351,5 +374,131 @@ getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), n
 	} else {
 		p = p + geom_density(size=1, alpha=0.3)
 	}
+	p
+}
+
+##' Summarize the given score from the results in a matrix for plotting.
+##' @param results the results list from the prioritization
+##' @param score which score should be plotted; has to be a valid index or column name
+##' for the prioritize.combined matrix; default: "combined.score"
+##' @param summarize function for summarizing scores for each gene across cancers; defaul: NULL
+##' @return the score matrix with genes in rows and cancers in columns
+##' @author Andreas Schlicker
+summaryMatrix = function(results, score, summarize=NULL) {
+	plotting = matrix(NA, nrow=nrow(results[[1]]$prioritize.combined), ncol=length(results))
+	colnames(plotting) = names(results)
+	rownames(plotting) = rownames(results[[1]]$prioritize.combined)
+	for (cancType in colnames(plotting)) {
+		plotting[, cancType] = results[[cancType]]$prioritize.combined[rownames(plotting), score]
+	}
+	if (!is.null(summarize)) {
+		plotting = cbind(plotting, apply(plotting, 1, summarize))
+		colnames(plotting)[ncol(plotting)] = as.character(substitute(summarize))
+	}
+	
+	plotting
+}
+
+##' Generate a boxplot showing specific scores for all genes across all cancer types.
+##' The plot contains one facet per cancer type and one for the mean value. The genes
+##' can be grouped to contrast different gene classes with each other.
+##' @param results the results list from the prioritization
+##' @param groups named list of vectors with gene IDs grouping genes together; default: NULL (no groups)
+##' @param score which score should be plotted; has to be a valid index or column name
+##' for the prioritize.combined matrix; default: "combined.score"
+##' @param title main title for the plot; default: ""
+##' @param ylab title for the y-axis of the plot; default: ""
+##' @param xlab title for the x-axis of the plot; default: ""
+##' @return a ggplot2 object
+##' @author Andreas Schlicker
+scoreBoxplot = function(results, groups=NULL, score="combined.score", title="", xlab="", ylab=score) {
+	require(ggplot2) || stop("Couldn't load required package \"ggplot2\"!")
+	require(grid) || stop("Couldn't load required package \"grid\"!")
+	
+	plotting = summaryMatrix(results, score, mean)
+	
+	if (is.null(groups)) {
+		groups = list(all=rownames(results[[1]]$prioritize.combined))
+	}
+	
+	plotting.df = data.frame()
+	for (cancType in colnames(plotting)) {
+		for (group in names(groups)) {
+			genes = intersect(groups[[group]], rownames(results[[1]]$prioritize.combined))
+			plotting.df = rbind(plotting.df,
+					data.frame(Cancer=rep(cancType, times=length(genes)),
+							Score=plotting[genes, cancType],
+							Class=rep(group, times=length(genes))))
+		}
+	}	
+	plotting.df[, 2] = as.numeric(plotting.df[, 2])
+
+	p = ggplot(plotting.df, aes(x=Class, y=Score, fill=Class)) +
+			geom_boxplot(outlier.size=0) +
+			geom_jitter(size=1) +
+			facet_wrap(~ Cancer, ncol=4) +
+			labs(title=title, xlab=xlab, ylab=ylab) +
+			theme(axis.title=element_text(color="grey50", face="bold", size=20),
+					axis.text=element_text(color="grey50", face="bold", size=20),
+					legend.text=element_text(color="grey50", face="bold", size=20),
+					legend.title=element_text(color="black", face="bold", size=20),
+					legend.key.size=unit(1, "cm"),
+					strip.text=element_text(color="grey20", face="bold", size=20))
+	
+	p
+}
+
+##' Generate a histogram visualizing specific scores for all genes belonging to certain groups.
+##' The plot contains one facet per cancer type and one for the sum. The genes
+##' can be grouped to contrast different gene classes with each other and genes that don't belong to any group.
+##' At least one group is required.
+##' @param results the results list from the prioritization
+##' @param groups named list of vectors with gene IDs grouping genes together
+##' @param score which score should be plotted; has to be a valid index or column name
+##' for the prioritize.combined matrix; default: "combined.score"
+##' @param title main title for the plot; default: ""
+##' @param ylab title for the y-axis of the plot; default: ""
+##' @param xlab title for the x-axis of the plot; default: ""
+##' @param cols a color palette
+##' @return a ggplot2 object
+##' @author Andreas Schlicker
+scoreHistogram = function(results, groups, score="combined.score", title="", xlab="", ylab=score, 
+						  cols=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) { 
+	require(ggplot2) || stop("Couldn't load required package \"ggplot2\"!")
+	
+	plotting = plotting = summaryMatrix(results, score, sum)
+	
+	unique.genes = setdiff(rownames(plotting), unique(unlist(groups)))
+	
+	somscore.df = data.frame()
+	for (cancType in colnames(plotting)) {
+		for (group in names(groups)) {
+			cgst = table(plotting[groups[[group]], cancType])
+			ugst = table(plotting[unique.genes, cancType])
+			
+			somscore.df = rbind(somscore.df,
+								data.frame(Cancer=rep(cancType, times=length(cgst)),
+										   Score=names(cgst),
+										   Percentage=round(cgst/length(common.genes), digits=2),
+										   Group=rep(group, times=length(cgst))),
+								data.frame(Cancer=rep(cancType, times=length(ugst)),
+										   Score=names(ugst),
+										   Percentage=round(ugst/length(unique.genes), digits=2),
+										   Group=rep(group, times=length(ugst))))
+		}
+	}
+	colnames(somscore.df)[3] = "Percentage"
+	somscore.df[, 3] = as.numeric(somscore.df[, 3])
+	somscore.df[, 2] = as.numeric(somscore.df[, 2])
+	
+	p = ggplot(somscore.df, aes(x=Score, y=Percentage, fill=Group)) + 
+		geom_histogram(binwidth=0.1, position="dodge", stat="identity") + 
+		facet_wrap( ~ Cancer, ncol=4) +
+		scale_color_manual(values=cols) +
+		labs(title=title, ylab=ylab, xlab=xlab) + 
+		theme(axis.ticks=element_blank(), 
+			  axis.text.x=element_text(colour="grey50"),
+			  axis.text.y=element_text(colour="grey50"))
+	
 	p
 }
