@@ -374,6 +374,8 @@ getOptionList = function(options) {
 ##' @author Andreas Schlicker
 parseOptions = function(options, args) {
 	require(optparse) || stop("Can't load required package \"optparse\"!")
+	require(stringr) || stop("Can't load required package \"stringr\"!")
+	
 	options = parse_args(OptionParser(option_list=options), args=args)
 	lapply(options, function(x) { if (str_detect(x, ",")) str_split(configOptions$cancer, ",")[[1]] else x })
 }
