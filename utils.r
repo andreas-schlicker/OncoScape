@@ -352,6 +352,7 @@ getOptionList = function(options) {
 	
 	all = list(config=make_option(c("-c", "--config"), type="character", help="Configuration file"),
 		 	   input=make_option(c("-i", "--input"), type="character", help="RData file with precomputed results"),
+			   inputstep2=make_option(c("-u", "--inputstep2"), type="character", help="RData file with precomputed results from step2"),
 		 	   output=make_option(c("-o", "--output"), type="character", help="RData output file for saving results"),
 			   genes=make_option(c("-g", "--genes"), type="character", help="Gene file", default=""),
 			   genecol=make_option(c("-e", "--genecolumn"), type="integer", help="Column with gene IDs in the gene file", default=1),
@@ -360,7 +361,8 @@ getOptionList = function(options) {
 			   cancer=make_option(c("-a", "--cancers"), type="character", help="Comma-separated list of cancer types to test", default="all"),
 			   prefix=make_option(c("-p", "--prefix"), type="character", help="Plotting file prefix", default=""),
 			   notopgenes=make_option(c("-n", "--notopgenes"), type="integer", help="Number of top genes", default=10),
-			   datatype=make_option(c("-d", "--datatype"), type="character", help="Comma-separated list of data types to test (all, exprs, achilles, cgh, meth, sommut)", default="all"))
+			   datatype=make_option(c("-d", "--datatype"), type="character", help="Comma-separated list of data types to test (all, exprs, achilles, cgh, meth, sommut)", default="all"),
+			   methylation=make_option(c("-m", "--methylation"), type="character", help="Resolution of methylation data (base or region)", default="base"))
 	   
 	all[options]
 }
