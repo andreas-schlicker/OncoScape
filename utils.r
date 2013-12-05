@@ -359,17 +359,19 @@ getOptionList = function(options) {
 			   threads=make_option(c("-t", "--threads"), type="integer", help="Number of parallel threads", default=11),
 			   cancer=make_option(c("-a", "--cancers"), type="character", help="Comma-separated list of cancer types to test", default="all"),
 			   prefix=make_option(c("-p", "--prefix"), type="character", help="Plotting file prefix", default=""),
-			   notopgenes=make_option(c("-n", "--notopgenes"), type="integer", help="Number of top genes", default=10))
+			   notopgenes=make_option(c("-n", "--notopgenes"), type="integer", help="Number of top genes", default=10),
+			   datatype=make_option(c("-d", "--datatype"), type="character", help="Comma-separated list of data types to test (all, exprs, achilles, cgh, meth, sommut)", default="all"))
 	   
 	all[options]
 }
 
-##' Parses command line options.
+##' Parses command line options. Option values containing commas will be split at them.
 ##' @param options list with OptionParserOption objects
-##' @args character vector with command line options
+##' @param args character vector with command line options
 ##' @return named list with all options
 ##' @author Andreas Schlicker
 parseOptions = function(options, args) {
 	require(optparse) || stop("Can't load required package \"optparse\"!")
-	parse_args(OptionParser(option_list=options), args=args)
+	options = parse_args(OptionParser(option_list=options), args=args)
+	lapply(options, function(x) { if (str_detect(x, ",")) str_split(configOptions$cancer, ",")[[1]] else x })
 }
