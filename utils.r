@@ -380,5 +380,5 @@ parseOptions = function(options, args) {
 	require(stringr) || stop("Can't load required package \"stringr\"!")
 	
 	options = parse_args(OptionParser(option_list=options), args=args)
-	lapply(options, function(x) { if (str_detect(x, ",")) str_split(configOptions$cancer, ",")[[1]] else x })
+	lapply(options, function(x) { if (str_detect(x, ",")) str_split(x, ",")[[1]] else x })
 }
