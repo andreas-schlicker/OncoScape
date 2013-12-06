@@ -352,7 +352,7 @@ getOptionList = function(options) {
 	
 	all = list(config=make_option(c("-c", "--config"), type="character", help="Configuration file"),
 		 	   input=make_option(c("-i", "--input"), type="character", help="RData file with precomputed results"),
-			   inputstep2=make_option(c("-u", "--inputstep2"), type="character", help="RData file with precomputed results from step2"),
+			   inputstep2=make_option(c("-u", "--inputstep2"), type="character", help="RData file with precomputed results from step2", default=""),
 		 	   output=make_option(c("-o", "--output"), type="character", help="RData output file for saving results"),
 			   genes=make_option(c("-g", "--genes"), type="character", help="Gene file", default=""),
 			   genecol=make_option(c("-e", "--genecolumn"), type="integer", help="Column with gene IDs in the gene file", default=1),
