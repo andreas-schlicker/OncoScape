@@ -364,7 +364,8 @@ getOptionList = function(options) {
 			   datatype=make_option(c("-d", "--datatype"), type="character", help="Comma-separated list of data types to test (all, exprs, achilles, cgh, meth, sommut)", default="all"),
 			   methylation=make_option(c("-m", "--methylation"), type="character", help="Resolution of methylation data (base or region)", default="base"),
 			   filtercol=make_option(c("-f", "--filtercol"), type="character", help="Name of the column with the functional mutation score", default="NULL"),
-			   filterscore=make_option(c("-r", "--filterscore"), type="numeric", help="Minimum functional score a mutation needs to have", default="1"))
+			   filterscore=make_option(c("-r", "--filterscore"), type="numeric", help="Minimum functional score a mutation needs to have", default="1"),
+			   filtersnps=make_option(c("-l", "--filtersnps"), type="logical", help="Determines whether methylation probes containing SNPs should be filtered out (comma-separated list of SNP_target, SNP_within_10, SNP_outside_10, SNP_probe or none)", default="SNP_target,SNP_within_10,SNP_outside_10,SNP_probe"))
 	   
 	all[options]
 }
