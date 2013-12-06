@@ -463,7 +463,7 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 						  cols=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) { 
 	require(ggplot2) || stop("Couldn't load required package \"ggplot2\"!")
 	
-	plotting = plotting = summaryMatrix(results, score, sum)
+	plotting = summaryMatrix(results, score, sum)
 	
 	unique.genes = setdiff(rownames(plotting), unique(unlist(groups)))
 	
