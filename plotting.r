@@ -299,15 +299,12 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 ##' @return character vector with sorted elements
 ##' @author Andreas Schlicker
 getOrder = function(inpData, score, column) {
-	# Sorted vector
-	res = rep(0, times=length(unique(inpData[, column])))
-	# Unique elements to sort
-	names(res) = unique(inpData[, column])
-	for (n in names(res)) {
-		# For each element, sum all scores
-		res[n] = sum(inpData[intersect(which(inpData[, "score.type"]==score), which(inpData[, column]==n)), "score"])
-	}
-	
+	# Retain only the sorting scores
+	inpData = inpData[which(inpData[, "score.type"] == score), ]
+	# Split the scores according to the different entries in "column"
+	scores = split(inpData$score, inpData[, column])
+	# Sum the scores
+	res = unlist(lapply(scores, sum, na.rm=TRUE))
 	# Return the elements sorted according to ascending sum of scores
 	names(sort(res))
 }
