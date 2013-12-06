@@ -39,7 +39,7 @@ filterProbes = function(tumors, normals,
 	
 	# All probes that we look at
 	excl.probes = setdiff(unique(unlist(res.g2p)), common.probes)
-	if (length(snps) > 0) {
+	if (!is.null(snps) && length(snps) > 0) {
 		# We need to filter out probes containing SNPs in the given categories
 		# Find all probes that have a SNP in at least one category
 		excl.snps = apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, function(x) { any(x) })
