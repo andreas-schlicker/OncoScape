@@ -308,7 +308,7 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 ##' @return vector from the list
 ##' @author Andreas Schlicker
 ifPresent = function(gene, inpList) {
-	if (gene %in% names(inpList)) { 
+	if (!is.null(names(inpList)) && gene %in% names(inpList)) { 
 		res = inpList[[gene]] 
 	} else {
 		res = c()
