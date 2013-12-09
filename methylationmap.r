@@ -318,6 +318,8 @@ summarizeMethylation = function(tumors,
 		summary[gene, "relative"] = summary[gene, "absolute"] / nTumors
 	}
 	
+	samples[setdiff(genes, names(samples))] = c()
+	
 	gene.scores = sapply(gene.scores, function(x) { as.integer(x > score.cutoff) })
 	
 	list(scores=gene.scores, summary=summary, samples=samples, meth.analysis=meth.analysis)
