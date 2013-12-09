@@ -13,7 +13,7 @@
 ##' @return named list with two entries ("selected.probes" and "gene2probe")
 ##' @author Andreas Schlicker
 filterProbes = function(tumors, normals, 
-						genes=NULL, probe.annotation, gene2probe,
+						genes=NULL, probe.annotation, gene2probe, probe2gene,
 						regions=c(""), 
 						snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
 	require(stringr) || stop("Could not load required package \"stringr\"!")
@@ -21,24 +21,24 @@ filterProbes = function(tumors, normals,
 	# Probes in the two data set that also have annotation
 	common.probes = intersect(rownames(tumors), intersect(rownames(normals), rownames(probe.annotation)))
 	
-	# If genes == NULL, test all genes
+	# If genes == NULL, all genes
 	if (is.null(genes)) {
 		genes = names(gene2probe)
 	}
 	# Get probe to gene and region mapping for all genes
 	res.g2p = gene2probe[genes]
 	
+	## Filter probes by gene region
 	# If analysis should be restricted to some gene regions, remove all others 
-	if (regions != "") {
-		for (x in names(res.g2p)) {
-			for (n in intersect(names(res.g2p[[x]]), regions)) {
-				res.g2p[[x]][[n]] = NULL 
-			}
+	if (length(regions) > 1) {
+		for (x in 1:length(res.g2p)) {
+			res.g2p[[x]][regions] = NULL
 		}
 	}
-	
-	# All probes that we look at
+	# Vector with probes to remove
 	excl.probes = setdiff(unique(unlist(res.g2p)), common.probes)
+	
+	## Filter probes by SNPS
 	if (!is.null(snps) && length(snps) > 0) {
 		# We need to filter out probes containing SNPs in the given categories
 		# Find all probes that have a SNP in at least one category
@@ -50,18 +50,16 @@ filterProbes = function(tumors, normals,
 	if (length(excl.probes) > 0) {
 		res.selprobes = setdiff(unique(unlist(res.g2p)), excl.probes)
 		# Clean up the gene to probe mapping as well
-		for (p in excl.probes) {
-			# All genes and their regions with the current probe
-			gene_regions = str_split(probe.annotation[p, "Symbol_region_unique"], ";")[[1]]
-			for (gene_region in gene_regions) {
-				# Get the gene and the region, remove the probe; if there is no probe left, delete the region
-				gs = str_split(gene_region, "_")[[1]]
-				gene = gs[1]
-				region = gs[2]
-				
-				res.g2p[[gene]][[region]] = setdiff(res.g2p[[gene]][[region]], p)
-				if (length(res.g2p[[gene]][[region]]) == 0) {
-					res.g2p[[gene]][[region]] == NULL
+		for (p in excl.probes[1:10000]) {
+			for (region in names(probe2gene[[p]])) {
+				for (gene in probe2gene[[p]][[region]]) {
+					temp = res.g2p[[gene]][[region]]
+					temp = temp[-match(p, temp)]
+					if (length(temp) == 0) {
+						res.g2p[[gene]][[region]] = NULL
+					} else {
+						res.g2p[[gene]][[region]] = temp
+					}
 				}
 			}
 		}
