@@ -43,15 +43,14 @@ filterProbes = function(tumors, normals,
 	if (!is.null(snps) && length(snps) > 0) {
 		# We need to filter out probes containing SNPs in the given categories
 		# Find all probes that have a SNP in at least one category
-		excl.snps = apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, any)
-		excl.snps = names(excl.snps)[excl.snps]
+		excl.snps = names(which(apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, any)))
 		excl.probes = union(excl.probes, excl.snps)
 	}
 	
 	if (length(excl.probes) > 0) {
 		res.selprobes = setdiff(unique(unlist(res.g2p)), excl.probes)
 		# Clean up the gene to probe mapping as well
-		for (p in excl.probes[1:10000]) {
+		for (p in excl.probes) {
 			for (region in names(probe2gene[[p]])) {
 				for (gene in probe2gene[[p]][[region]]) {
 					temp = res.g2p[[gene]][[region]]
