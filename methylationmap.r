@@ -7,6 +7,7 @@
 ##' probe id, "gene" column giving gene IDs (possibily separated by ";")
 ##' @param gene2probe nested named list that maps probes to regions of genes; names of the outer list
 ##' map to gene IDs used in "genes"; names of inner lists are gene regions
+##' @param probe2gene nested list mapping genes to probes and gene regions
 ##' @param regions vector with gene regions to remove; default: "" to keep probes mapping to any region
 ##' @param snps probes with SNPs in any of these locations will be removed; default: any SNP in the probe
 ##' or target region
@@ -42,7 +43,7 @@ filterProbes = function(tumors, normals,
 	if (!is.null(snps) && length(snps) > 0) {
 		# We need to filter out probes containing SNPs in the given categories
 		# Find all probes that have a SNP in at least one category
-		excl.snps = apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, function(x) { any(x) })
+		excl.snps = apply(infinium450.probe.ann[unique(unlist(res.g2p)), snps, drop=FALSE], 1, any)
 		excl.snps = names(excl.snps)[excl.snps]
 		excl.probes = union(excl.probes, excl.snps)
 	}
