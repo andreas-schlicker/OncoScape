@@ -309,10 +309,48 @@ getOrder = function(inpData, score, column) {
 	names(sort(res))
 }
 
+##' Summarize the results in the list for plotting as score heatmap.
+##' @param results named list with prioritization results
+##' @return data.frame for plotting
+##' @author Andreas Schlicker
+heatmapDataframe = function(results) {
+	result.df = data.frame()
+	for (n in names(results)) {
+		temp = results[[n]]$prioritize.combined
+		result.df = rbind(result.df,
+				data.frame(gene=rownames(temp),
+						score=temp[, "og.score"],
+						score.type="OG",
+						cancer=n),
+				data.frame(gene=rownames(temp),
+						score=-1*temp[, "ts.score"],
+						score.type="TS",
+						cancer=n),
+				data.frame(gene=rownames(temp),
+						score=temp[, "combined.score"],
+						score.type="Combined",
+						cancer=n),
+				data.frame(gene=rownames(temp),
+						score=temp[, "og.affected.rel"],
+						score.type="OG.affected",
+						cancer=n),
+				data.frame(gene=rownames(temp),
+						score=temp[, "ts.affected.rel"],
+						score.type="TS.affected",
+						cancer=n),
+				data.frame(gene=rownames(temp),
+						score=temp[, "og.affected.rel"] - temp[, "ts.affected.rel"],
+						score.type="Combined.affected",
+						cancer=n))
+	}
+	
+	result.df
+}
+
 ##' Generate a heatmap of prioritization scores. Used for result heatmaps in the plot_prioritize script.
 ##' @param dataFrame approprately formatted data.frame
 ##' @param yaxis.theme ggplot2 theme for the y-axis
-##' @param labels vector with labels for elements in rows; default: NULL (no labels
+##' @param labels vector with labels for elements in rows; default: NULL (no labels)
 ##' @param breaks vector with y-axis breaks; is only used if labels != NULL; default: NULL
 ##' @param color.low color for the lowest value; default: white
 ##' @param color.mid color for middle values; default: NULL
