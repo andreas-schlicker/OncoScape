@@ -7,14 +7,13 @@
 ##' probe id, "gene" column giving gene IDs (possibily separated by ";")
 ##' @param gene2probe nested named list that maps probes to regions of genes; names of the outer list
 ##' map to gene IDs used in "genes"; names of inner lists are gene regions
-##' @param probe2gene nested list mapping genes to probes and gene regions
 ##' @param regions vector with gene regions to remove; default: "" to keep probes mapping to any region
 ##' @param snps probes with SNPs in any of these locations will be removed; default: any SNP in the probe
 ##' or target region
-##' @return named list with two entries ("selected.probes" and "gene2probe")
+##' @return vector with probes remaining after all filtering steps
 ##' @author Andreas Schlicker
 filterProbes = function(tumors, normals, 
-						genes=NULL, probe.annotation, gene2probe, probe2gene,
+						genes=NULL, probe.annotation, gene2probe,
 						regions=c(""), 
 						snps=c("SNP_target", "SNP_within_10", "SNP_outside_10", "SNP_probe")) {
 	require(stringr) || stop("Could not load required package \"stringr\"!")
@@ -47,31 +46,7 @@ filterProbes = function(tumors, normals,
 		excl.probes = union(excl.probes, excl.snps)
 	}
 	
-	if (length(excl.probes) > 0) {
-		res.selprobes = setdiff(unique(unlist(res.g2p)), excl.probes)
-		# Clean up the gene to probe mapping as well
-		for (p in excl.probes) {
-			for (region in names(probe2gene[[p]])) {
-				for (gene in probe2gene[[p]][[region]]) {
-					temp = res.g2p[[gene]][[region]]
-					temp = temp[-match(p, temp)]
-					if (length(temp) == 0) {
-						res.g2p[[gene]][[region]] = NULL
-					} else {
-						res.g2p[[gene]][[region]] = temp
-					}
-				}
-			}
-		}
-	}
-	
-	res.g2p.flat = vector("list", length(res.g2p))
-	names(res.g2p.flat) = names(res.g2p)
-	for (i in 1:length(res.g2p)) {
-		res.g2p.flat[[i]] = unlist(res.g2p[[i]])
-	}
-	
-	list(selected.probes=res.selprobes, gene2probe=res.g2p, gene2probe.flat=res.g2p.flat)
+	setdiff(unique(unlist(res.g2p)), excl.probes)
 }
 
 ##' Calculates Spearman correlation between methylation probes and expression of the corresponding genes and 
@@ -210,6 +185,7 @@ summarizeMethylation = function(tumors,
 							 	meth.analysis,
 							 	gene2probe.flat,
 							 	probe2gene,
+								selected.probes=NULL,
 							 	genes=NULL,
 							 	wilcox.FDR=0.05, 
 							 	cor.FDR=0.05,
@@ -228,12 +204,10 @@ summarizeMethylation = function(tumors,
 	compareBody = switch(regulation, down=smallerThan, up=greaterThan)
 	
 	# Restrict the analysis to probes that match to the genes of interest
-	if (!is.null(genes)) {
-		significant.probes = doFilter(rownames(tumors), rownames(normals), unlist(gene2probe.flat[genes]), TRUE)[[1]]
-	} else {
-		significant.probes = doFilter(rownames(tumors), rownames(normals), NULL, TRUE)[[1]]
+	if (is.null(genes)) {
 		genes = names(gene2probe.flat)
 	}
+	significant.probes = doFilter(rownames(tumors), rownames(normals), selected.probes, TRUE)[[1]]
 	all.probes = significant.probes
 	
 	meth.analysis$cors = meth.analysis$cors[which(meth.analysis$cors[, "probe"] %in% significant.probes), ]
