@@ -531,24 +531,27 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 	p
 }
 
-##' Plots a confusion heatmap. Essentially a colored confusion table.
-##' @param dataframe plotting dataframe with at least three columns (x values, y values and frequencies)
+##' Plots a confusion heatmap. Essentially a colored confusion table. The plot is faceted by cancer.
+##' @param dataframe plotting dataframe with at least four columns (x values, y values, frequencies and cancer)
+##' @param ncol number of facets in each row; default: 3
 ##' @param title main title for the plot; default: name of the third column of dataframe
 ##' @param xlab x-axis title; default: name of the first column of dataframe
 ##' @param ylab y-axis title; default: name of the second column of dataframe
 ##' @author Andreas Schlicker (adopted from function ggfluctuation() in ggplot2
-confusionHeatmap = function(dataframe, 
+confusionHeatmap = function(dataframe, ncol=3,
 							title=colnames(dataframe)[3], xlab=colnames(dataframe)[1], ylab=colnames(dataframe)[2]) {
-	names(table) = c("x", "y", "freq")
+	names(dataframe)[1:3] = c("x", "y", "freq")
 	
-	ggplot(table, aes(x=x, y=y, fill=freq)) +
+	ggplot(dataframe, aes(x=x, y=y, fill=freq)) +
 		geom_tile(colour = "grey50") + 
 		geom_text(aes(label=freq), size=10, fontface="bold", color="gray10") + 
 		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
+		facet_wrap( ~ cancer, ncol=ncol) +
 		labs(title=title, xlab=xlab, ylab=ylab) + 
 		theme(title=element_text(colour="black", size=20, face="bold"),
 			  axis.text=element_text(colour="grey50", size=20, face="bold"),
 			  axis.title=element_text(colour="grey50", size=20, face="bold"),
 			  legend.text=element_text(colour="grey50", size=20, face="bold"),
-			  legend.title=element_text(colour="grey50", size=20, face="bold"))
+			  legend.title=element_text(colour="grey50", size=20, face="bold"),
+			  strip.text=element_text(colour="black", size=20, face="bold"))
 }
