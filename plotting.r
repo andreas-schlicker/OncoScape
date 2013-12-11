@@ -311,37 +311,30 @@ getOrder = function(inpData, score, column) {
 
 ##' Summarize the results in the list for plotting as score heatmap.
 ##' @param results named list with prioritization results
+##' @param scores named list of scores that are summarized;
+##' The list elements have to match to column names in the results matrices.
+##' The names of the list elements will be used as labels in the resulting data.frame.
+##' Combined.affected is a special name, which is translated to og.affected.rel - ts.affected.rel
 ##' @return data.frame for plotting
 ##' @author Andreas Schlicker
-heatmapDataframe = function(results) {
+heatmapDataframe = function(results, 
+							scores=list(OG="og.score", TS="ts.score", Combined="combined.score", 
+										OG.affected="og.affected.rel", TS.affected="ts.affected.rel", Combined.affected="")) {
 	result.df = data.frame()
 	for (n in names(results)) {
 		temp = results[[n]]$prioritize.combined
-		result.df = rbind(result.df,
+		for (s in names(scores)) {
+			if (s == "Combined.affected") {
+				score = temp[, "og.affected.rel"] - temp[, "ts.affected.rel"]
+			} else {
+				score = temp[, scores[[s]]]	
+			}
+			result.df = rbind(result.df,
 				data.frame(gene=rownames(temp),
-						score=temp[, "og.score"],
-						score.type="OG",
-						cancer=n),
-				data.frame(gene=rownames(temp),
-						score=-1*temp[, "ts.score"],
-						score.type="TS",
-						cancer=n),
-				data.frame(gene=rownames(temp),
-						score=temp[, "combined.score"],
-						score.type="Combined",
-						cancer=n),
-				data.frame(gene=rownames(temp),
-						score=temp[, "og.affected.rel"],
-						score.type="OG.affected",
-						cancer=n),
-				data.frame(gene=rownames(temp),
-						score=temp[, "ts.affected.rel"],
-						score.type="TS.affected",
-						cancer=n),
-				data.frame(gene=rownames(temp),
-						score=temp[, "og.affected.rel"] - temp[, "ts.affected.rel"],
-						score.type="Combined.affected",
-						cancer=n))
+						   score=score,
+						   score.type=s,
+						   cancer=n))
+		}
 	}
 	
 	result.df
@@ -536,4 +529,26 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 			  axis.text.y=element_text(colour="grey50"))
 	
 	p
+}
+
+##' Plots a confusion heatmap. Essentially a colored confusion table.
+##' @param dataframe plotting dataframe with at least three columns (x values, y values and frequencies)
+##' @param title main title for the plot; default: name of the third column of dataframe
+##' @param xlab x-axis title; default: name of the first column of dataframe
+##' @param ylab y-axis title; default: name of the second column of dataframe
+##' @author Andreas Schlicker (adopted from function ggfluctuation() in ggplot2
+confusionHeatmap = function(dataframe, 
+							title=colnames(dataframe)[3], xlab=colnames(dataframe)[1], ylab=colnames(dataframe)[2]) {
+	names(table) = c("x", "y", "freq")
+	
+	ggplot(table, aes(x=x, y=y, fill=freq)) +
+		geom_tile(colour = "grey50") + 
+		geom_text(aes(label=freq), size=10, fontface="bold", color="gray10") + 
+		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
+		labs(title=title, xlab=xlab, ylab=ylab) + 
+		theme(title=element_text(colour="black", size=20, face="bold"),
+			  axis.text=element_text(colour="grey50", size=20, face="bold"),
+			  axis.title=element_text(colour="grey50", size=20, face="bold"),
+			  legend.text=element_text(colour="grey50", size=20, face="bold"),
+			  legend.title=element_text(colour="grey50", size=20, face="bold"))
 }
