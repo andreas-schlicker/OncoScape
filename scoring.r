@@ -36,12 +36,12 @@ combineScores = function(scores, genes=NULL) {
 ##' @return vector with summarized scores; vector of NA if scoreMat doesn't contain any gene
 ##' @author Andreas Schlicker
 scoreSet = function(scoreMat, geneset, summarize=mean) {
-	common = intersect(rownames(scoreMat, geneset))
+	common = intersect(rownames(scoreMat), geneset)
 	if (length(common) == 0) {
 		res = rep(NA, times=ncol(scoreMat))
 		names(res) = colnames(scoreMat)
 	} else {
-		res = apply(scoreMat[common, , drop=FALSE], 1, summarize, na.rm=TRUE)
+		res = apply(scoreMat[common, , drop=FALSE], 2, summarize, na.rm=TRUE)
 	}
 	
 	res
