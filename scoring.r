@@ -60,14 +60,14 @@ scoreGenesets = function(scoreMat, genesets, summarize=mean) {
 	}
 	
 	sumScores = lapply(genesets, function(x) { scoreSet(scoreMat, x, summarize)})
-	names(sumScores) = names(genessets)
+	names(sumScores) = names(genesets)
 	
 	scoreNames = colnames(scoreMat)
 	res = matrix(NA, ncol=ncol(scoreMat), nrow=length(genesets))
 	colnames(res) = scoreNames
 	rownames(res) = names(genesets)
 	for (n in names(sumScores)) {
-		res[n, ] = sumScores[n, scoreNames]
+		res[n, ] = sumScores[[n]][scoreNames]
 	}
 	
 	res
