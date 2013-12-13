@@ -55,10 +55,10 @@ boxplot = function(group1, group2,
 ##' @param scores vector of phenotype scores from Project Achilles
 ##' @param upper.threshold threshold above which phenotype scores are considered to be significant
 ##' @param lower.threshold threshold below which phenotype scores are considered to be significant
-##' @param main main header for the plot 
+##' @param main main title for the plot 
 ##' @return the plot
 ##' @author Andreas Schlicker
-barplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main=NULL) {
+achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main="") {
 	if (!require(ggplot2)) {
 		stop("Can't load required package \"ggplot2\"!")
 	}
@@ -70,18 +70,11 @@ barplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main=NULL
 	plotting.df = data.frame(phenoscore=scores, 
 							 cls=sapply(names(scores), function(x) { str_sub(x, start=1, end=str_locate(x, "_")[1, 1]-1) }))
 	
-	p = ggplot(plotting.df, aes(x=cls, y=phenoscore, fill="#767676")) +
-		geom_bar(stat="identity", position=position_dodge()) +
+	p = barplot(plotting.df, facet=NULL, x="cls", y="phenoscore", stat="identity", 
+				title=main, xlab="Cell lines", ylab="Achilles phenotype score", fill="#767676") +
 		geom_hline(yintercept=0, linetype=1) +
-		xlab("Cell lines") +
-		ylab("Achilles phenotype score") +
-		guides(fill=FALSE) +
-		generateTheme() + 
 		theme(axis.text.x=element_text(face='bold', size=25, angle=45, vjust=0.5))
-
-	if (!is.null(main)) {
-		p = p + ggtitle(main)
-	}
+					 
 	if (!is.null(upper.threshold)) {
 		p = p + geom_hline(yintercept=upper.threshold, linetype=2)
 	}
@@ -131,7 +124,7 @@ scatterplot = function(meth.group1, meth.group2,
 	p = ggplot(plotting.df, aes(x=probe, y=beta, shape=group, color=group)) +
 		geom_point(size=4, position=pd) +
 		scale_shape_manual(name="", values=c(15, 16)) +
-		scale_colour_manual(name="", values=color.palette) +
+		scale_color_manual(name="", values=color.palette) +
 		ylim(0,1) +
 		xlab("Methylation probes") +
 		ylab("Average beta value") + 
@@ -213,7 +206,7 @@ plotGene = function(gene, prior.details, samples=NULL,
 					 color.palette)
 			 
 	# Achilles plot
-	achil = barplot(achilles, achilles.ut, achilles.lt, main=NULL)
+	achil = achillesBarplot(achilles, achilles.ut, achilles.lt, main="")
 	
 	# Methylation plot
 	samp1 = colnames(meth.group1)
@@ -235,15 +228,15 @@ plotGene = function(gene, prior.details, samples=NULL,
 ##' @author Andreas Schlicker
 generateTheme = function() {
 	theme(plot.title=element_text(face='bold', size=25),
-			panel.background = element_rect(fill='grey95', colour="grey95"),
-			axis.text.x=element_text(face='bold', size=25),
-			axis.title.x=element_text(face='bold', size=25),
-			axis.text.y=element_text(face='bold', size=25),
-			axis.title.y=element_text(face='bold', size=25),
-			legend.text=element_text(face="bold", size=25),
-			legend.title=element_text(face="bold", size=25),
-			strip.text.x = element_text(face="bold", size=25),
-			strip.text.y = element_text(face="bold", size=25))
+		  panel.background = element_rect(fill='grey95', color="grey95"),
+		  axis.text.x=element_text(face='bold', size=25),
+		  axis.title.x=element_text(face='bold', size=25),
+		  axis.text.y=element_text(face='bold', size=25),
+		  axis.title.y=element_text(face='bold', size=25),
+		  legend.text=element_text(face="bold", size=25),
+		  legend.title=element_text(face="bold", size=25),
+		  strip.text.x = element_text(face="bold", size=25),
+		  strip.text.y = element_text(face="bold", size=25))
 }
 
 ## Taken from: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_%28ggplot2%29/
@@ -394,8 +387,8 @@ getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), n
 			facet_wrap(formula(facets), ncol=ncol) +
 			labs(title=title, x=xlab, y=ylab) + 
 			theme(axis.ticks=element_blank(), 
-					axis.text.x=element_text(colour="grey50", face="bold"),
-					axis.text.y=element_text(colour="grey50", face="bold"))
+					axis.text.x=element_text(color="grey50", face="bold"),
+					axis.text.y=element_text(color="grey50", face="bold"))
 	
 	if (plot.type == "histogram") {
 		p = p + geom_histogram(binwidth=0.5, position="dodge")
@@ -525,8 +518,8 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 		scale_color_manual(values=cols) +
 		labs(title=title, ylab=ylab, xlab=xlab) + 
 		theme(axis.ticks=element_blank(), 
-			  axis.text.x=element_text(colour="grey50"),
-			  axis.text.y=element_text(colour="grey50"))
+			  axis.text.x=element_text(color="grey50"),
+			  axis.text.y=element_text(color="grey50"))
 	
 	p
 }
@@ -544,19 +537,126 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 	names(dataframe)[1:3] = c("x", "y", "freq")
 	
 	p = ggplot(dataframe, aes(x=x, y=y, fill=freq)) +
-		geom_tile(colour = "grey50") + 
+		geom_tile(color = "grey50") + 
 		geom_text(aes(label=freq), size=10, fontface="bold", color="gray10") + 
 		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
 		labs(title=title, xlab=xlab, ylab=ylab) + 
-		theme(title=element_text(colour="black", size=20, face="bold"),
-			  axis.text=element_text(colour="grey50", size=20, face="bold"),
-			  axis.title=element_text(colour="grey50", size=20, face="bold"),
-			  legend.text=element_text(colour="grey50", size=20, face="bold"),
-			  legend.title=element_text(colour="grey50", size=20, face="bold"),
-			  strip.text=element_text(colour="black", size=20, face="bold"))
+		theme(title=element_text(color="black", size=20, face="bold"),
+			  axis.text=element_text(color="grey50", size=20, face="bold"),
+			  axis.title=element_text(color="grey50", size=20, face="bold"),
+			  legend.text=element_text(color="grey50", size=20, face="bold"),
+			  legend.title=element_text(color="grey50", size=20, face="bold"),
+			  strip.text=element_text(color="black", size=20, face="bold"))
 	if (!is.null(facet)) {
 		p = p + facet_wrap(formula(paste(" ~ ", facet, sep="")), ncol=ncol)
 	}
 	
 	p
+}
+
+##' Creates a barplot for a specific column in the input data. 
+##' By default, a facet will be created for each level of the "cancer" column.
+##' @param dataframe input data
+##' @param facet name of the column used for faceting; default: cancer
+##' @param ncol number of columns for faceting; default: 3
+##' @param x name of the column to be used as x-axis; default: score.diff
+##' @param y name of the column to be used as y-axis; default: NULL (for use with stat=="bin")
+##' @param stat statistic to be used for the plot; default: bin
+##' @param title main title for the plot; default: ""
+##' @param xlab x-axis title; default: ""
+##' @param ylab y-axis title; default: ""
+##' @param fill bar color; default: gray30 
+##' @author Andreas Schlicker
+barplot = function(dataframe, facet="cancer", ncol=3, 
+				   x="score.diff", y=NULL, stat="bin",			   
+				   title="", xlab="", ylab="", fill="gray30") {
+	
+	dataframe[, x] = as.factor(dataframe[, x])
+	
+	if (is.null(y)) {
+		p = ggplot(dataframe, aes_string(x=x), fill=fill)
+	} else {
+		p = ggplot(dataframe, aes_string(x=x, y=x), fill=fill)
+	}
+	
+	p = p + geom_bar(binwidth=0.25, stat=stat) + 
+			guides(fill=FALSE) +
+			labs(title=title, xlab=xlab, ylab=ylab) +
+			theme(title=element_text(color="black", size=20, face="bold"),
+				  axis.text=element_text(color="grey50", size=20, face="bold"),
+			  	  axis.title=element_text(color="grey50", size=20, face="bold"),
+			  	  legend.text=element_text(color="grey50", size=20, face="bold"),
+			  	  legend.title=element_text(color="grey50", size=20, face="bold"),
+			  	  strip.text=element_text(color="black", size=20, face="bold"))
+
+	if (!is.null(facet)) {
+		p = p + facet_wrap(formula(paste(" ~ ", facet, sep="")), ncol=ncol)
+	}
+
+	p
+}
+
+##' Creates a data.frame that is suitable for plotting with confusionHeatmap.
+##' @param dataframe a data.frame that contains the scores to be compared (column names
+##' score and score2) and a cancer column
+##' @return the new data.frame
+##' @author Andreas Schlicker
+conHeatDf = function(dataframe) {
+	res.df = data.frame()
+	for (cancType in unique(dataframe[, "cancer"])) {
+		tempTab = table(subset(combined, cancer == cancType)[, c("score", "score2")])
+		res.df = rbind(res.df, data.frame(x=rep(rownames(tempTab), times=2),
+										  y=rep(colnames(tempTab), each=2),
+										  freq=as.vector(tempTab),
+										  cancer=cancType))
+	}
+	
+	res.df
+}
+
+##' Multiple plot function
+##' Taken from http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_%28ggplot2%29/
+##'
+##' ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+##' @param cols Number of columns in layout
+##' @param layout A matrix specifying the layout. If present, 'cols' is ignored.
+##'
+##' If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+##' then plot 1 will go in the upper left, 2 will go in the upper right, and
+##' 3 will go all the way across the bottom.
+##' @author Winston Chang
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+	require(grid)
+	
+	# Make a list from the ... arguments and plotlist
+	plots <- c(list(...), plotlist)
+	
+	numPlots = length(plots)
+	
+	# If layout is NULL, then use 'cols' to determine layout
+	if (is.null(layout)) {
+		# Make the panel
+		# ncol: Number of columns of plots
+		# nrow: Number of rows needed, calculated from # of cols
+		layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+				ncol = cols, nrow = ceiling(numPlots/cols))
+	}
+	
+	if (numPlots==1) {
+		print(plots[[1]])
+		
+	} else {
+		# Set up the page
+		grid.newpage()
+		pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+		
+		# Make each plot, in the correct location
+		for (i in 1:numPlots) {
+			# Get the i,j matrix positions of the regions that contain this subplot
+			matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+			
+			print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+							layout.pos.col = matchidx$col))
+		}
+	}
 }
