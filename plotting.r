@@ -660,3 +660,24 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 		}
 	}
 }
+
+##' Prints a heatmap that is defined by the given list of parameters.
+##' @param params named list with parameters: "data": data frame for plotting; 
+##' "cancer.order": sorted list of column names; "gene.order": sorted list of row names;
+##' "topgenes": rowa to plot; "prefix": filename prefix including directory
+##' "filename": filename including extension; "score.type": score to plot; "color.low": color for low values
+##' "color.mid": color for intermediate values; "color.high": color for high values; 
+##' "yaxis": ggplot2 theme to apply to the yaxis; "ylab": y-axis title; "title": plot title
+##' @return NULL
+##' @author Andreas Schlicker
+plotHeatmap = function(params) {
+	params$data[, "cancer"] = factor(params$data[, "cancer"], levels=params$cancer.order)
+	params$data[, "gene"] = factor(params$data[, "gene"], levels=params$gene.order)
+	
+	png(paste(configOptions$prefix, params$filename, sep="_"), width=5000, height=3000, res=300)
+	print(getHeatmap(dataFrame=subset(params$data, score.type==params$score.type & gene %in% params$topgenes), 
+					yaxis.theme=params$yaxis, 
+					color.low=params$color.low, color.mid=params$color.mid, color.high=params$color.high, 
+					ylab=params$ylab, title=params$title))
+	invisible(dev.off())
+}
