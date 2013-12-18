@@ -375,9 +375,12 @@ getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.lo
 ##' @param title main title for the plot; default: ""
 ##' @param ylab title for the y-axis of the plot; default: ""
 ##' @param xlab title for the x-axis of the plot; default: ""
+##' @param strip.theme ggplot2 theme for the facet strip; default: NULL
 ##' @return a ggplot2 object
 ##' @author Andreas Schlicker
-getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), ncol=3, title="", xlab="", ylab="") {
+getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), 
+					   ncol=3, title="", xlab="", ylab="",
+					   strip.theme=NULL) {
 	plot.type = match.arg(plot.type)
 	
 	p = ggplot(dataFrame, aes(x=score, fill=score.type, color=score.type)) + 
@@ -386,15 +389,18 @@ getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"), n
 			scale_x_continuous(breaks=-4:4) + 
 			facet_wrap(formula(facets), ncol=ncol) +
 			labs(title=title, x=xlab, y=ylab) + 
-			theme(axis.ticks=element_blank(), 
-					axis.text.x=element_text(color="grey50", face="bold"),
-					axis.text.y=element_text(color="grey50", face="bold"))
+			theme(axis.text=element_text(color="grey50", face="bold"))
 	
 	if (plot.type == "histogram") {
 		p = p + geom_histogram(binwidth=0.5, position="dodge")
 	} else {
 		p = p + geom_density(size=1, alpha=0.3)
 	}
+	
+	if (!is.null(strip.theme)) {
+		p = p + strip.theme
+	}
+	
 	p
 }
 
