@@ -367,7 +367,8 @@ getOptionList = function(options) {
 			   filterscore=make_option(c("-r", "--filterscore"), type="numeric", help="Minimum functional score a mutation needs to have", default="1"),
 			   filtersnps=make_option(c("-l", "--filtersnps"), type="character", help="Determines whether methylation probes containing SNPs should be filtered out (comma-separated list of SNP_target, SNP_within_10, SNP_outside_10, SNP_probe or none)", default="SNP_target,SNP_within_10,SNP_outside_10,SNP_probe"),
 			   result1=make_option(c("-1", "--result1"), type="character", help="First RData file with prioritization results"),
-			   result2=make_option(c("-2", "--result2"), type="character", help="Second RData file with prioritization results"))
+			   result2=make_option(c("-2", "--result2"), type="character", help="Second RData file with prioritization results"),
+			   cellline=make_option(c("-b", "--cellline"), type="character", help="Which cell line data set to use, if any", default="none"))
 	   
 	all[options]
 }
