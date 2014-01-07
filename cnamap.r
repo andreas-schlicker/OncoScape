@@ -283,8 +283,7 @@ summarizeCna = function(tumors,
 						cor.FDR=0.05, 
 						diff.cutoff=-0.1, 
 						regulation=c("down", "up"),
-						stddev=1,
-						paired=TRUE) {
+						stddev=1) {
 	regulation = match.arg(regulation)
 					
 	# Get the correct comparison function
