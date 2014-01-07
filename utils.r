@@ -358,7 +358,7 @@ getOptionList = function(options) {
 			   genecol=make_option(c("-e", "--genecolumn"), type="integer", help="Column with gene IDs in the gene file", default=1),
 			   samples=make_option(c("-s", "--samples"), type="character", help="Sample file", default=""),
 			   threads=make_option(c("-t", "--threads"), type="integer", help="Number of parallel threads", default=11),
-			   cancer=make_option(c("-a", "--cancers"), type="character", help="Comma-separated list of cancer types to test", default="all"),
+			   cancer=make_option(c("-a", "--cancer"), type="character", help="Comma-separated list of cancer types to test", default="all"),
 			   prefix=make_option(c("-p", "--prefix"), type="character", help="Plotting file prefix", default=""),
 			   notopgenes=make_option(c("-n", "--notopgenes"), type="integer", help="Number of top genes", default=10),
 			   datatype=make_option(c("-d", "--datatype"), type="character", help="Comma-separated list of data types to test (all, exprs, achilles, cgh, meth, sommut)", default="all"),
