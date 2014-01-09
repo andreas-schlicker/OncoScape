@@ -18,16 +18,15 @@ diffMat = function(results1, results2) {
 	res
 }
 
-##' Returns a vector with genes that have a non-zero score.
-##' The gene names are sorted accedingly according to the sum of changes
-##' across all cancer types. 
+##' Returns a vector with scores summed across all cancer types.
+##' The vector is sorted in ascending order.
 ##' @param scoreDf score data frame
 ##' @param score name of the score to use
-##' @return vector with gene names
+##' @return named vector with sum of changes and gene names
 ##' @author Andreas Schlicker
 alteredGenes = function(scoreDf, score="Combined") {
 	scoreDf = scoreDf[which(scoreDf[, "score.type"] == score & scoreDf[, "score"] != 0), ]
-	names(sort(unlist(lapply(split(scoreDf$score, scoreDf$gene), sum, na.rm=TRUE))))
+	sort(unlist(lapply(split(scoreDf$score, scoreDf$gene), sum, na.rm=TRUE)))
 }
 
 compareScore = function(results1, results2, score) {
