@@ -542,8 +542,17 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 							title=colnames(dataframe)[3], xlab=colnames(dataframe)[1], ylab=colnames(dataframe)[2]) {
 	names(dataframe)[1:3] = c("x", "y", "freq")
 	
+	if (is.null(facet)) {
+		temp = unlist(lapply(split(dataframe$freq, list(dataframe$x, dataframe$y)), sum))
+		dataframe = dataframe[1:length(temp), ]
+		for (i in 1:length(temp)) {
+			dataframe[i, 3] = temp[i]
+			dataframe[i, 1:2] = str_split(names(temp)[i], "\\.")[[1]]
+		}
+	}
+	
 	p = ggplot(dataframe, aes(x=x, y=y, fill=freq)) +
-		geom_tile(color = "grey50") + 
+		geom_tile(color = "grey50") +
 		geom_text(aes(label=freq), size=10, fontface="bold", color="gray10") + 
 		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
 		labs(title=title, xlab=xlab, ylab=ylab) + 
@@ -553,6 +562,7 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 			  legend.text=element_text(color="grey50", size=20, face="bold"),
 			  legend.title=element_text(color="grey50", size=20, face="bold"),
 			  strip.text=element_text(color="black", size=20, face="bold"))
+
 	if (!is.null(facet)) {
 		p = p + facet_wrap(formula(paste(" ~ ", facet, sep="")), ncol=ncol)
 	}
