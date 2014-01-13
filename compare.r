@@ -12,7 +12,8 @@
 diffMat = function(results1, results2) {
 	cancTypes = intersect(names(results1), names(results2))
 	res = lapply(cancTypes, 
-			function(cancType) { list(prioritize.combined=results1[[cancType]]$prioritize.combined - results2[[cancType]]$prioritize.combined) })
+			function(cancType) { list(prioritize.combined=results1[[cancType]]$prioritize.combined - 
+														  results2[[cancType]]$prioritize.combined[rownames(results1[[cancType]]$prioritize.combined), ]) })
 	names(res) = cancTypes
 	
 	res
@@ -33,7 +34,7 @@ compareScore = function(results1, results2, score) {
 	res1.hdt = heatmapDataframe(results1, score)
 	res2.hdt = heatmapDataframe(results2, score)
 	combined = data.frame()
-	for (cancType in unique(res1.hdt[, "cancer"])) {
+	for (cancType in as.character(unique(res1.hdt[, "cancer"]))) {
 		temp1 = res1.hdt[which(res1.hdt[, "cancer"] == cancType), ]
 		temp2 = res2.hdt[which(res2.hdt[, "cancer"] == cancType), ]
 		combined = rbind(combined, 
@@ -42,9 +43,9 @@ compareScore = function(results1, results2, score) {
 							   score.diff=temp2[match(temp1[, "gene"], temp2[, "gene"]), "score"]))
 	}
 	
-	p1 = confusionHeatmap(conHeatDf(combined))
+	p1 = confusionHeatmap(conHeatDf(combined), xlab="baseline", ylab="altered score", title="")
 	p2 = barplot(combined)
-	p3 = confusionHeatmap(conHeatDf(combined), facet=NULL)
+	p3 = confusionHeatmap(conHeatDf(combined), facet=NULL, xlab="baseline", ylab="altered score", title="")
 	p4 = barplot(combined, facet=NULL)
 	
 	list(confusion=p1, difference=p2, confusionSum=p3, differenceSum=p4)
