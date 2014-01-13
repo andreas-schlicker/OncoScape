@@ -697,3 +697,75 @@ plotHeatmap = function(params) {
 					ylab=params$ylab, title=params$title))
 	invisible(dev.off())
 }
+
+##' Summarizes the given score in a matrix. 
+##' @param results the result list from a prioritization run
+##' @param score name of the column to add to the matrix; default: combined.score
+##' @return matrix with genes in rows and cancers in columns
+##' @author Andreas Schlicker
+pathviewMat = function(results, score="combined.score") {
+	allGenes = c()
+	for (i in 1:length(results)) {
+		allGenes = union(allGenes, rownames(results[[i]]$prioritize.combined))
+	}
+	
+	res = matrix(NA, nrow=length(allGenes), ncol=length(results))
+	rownames(res) = allGenes
+	colnames(res) = names(results)
+	for (n in names(results)) {
+		res[, n] = results[[n]]$prioritize.combined[allGenes, n, drop=FALSE]
+	}
+	
+	res
+}
+
+##' Generates pathview plots for all given results. This function can be used to plot 
+##' different scores for one cancer type or one score across different cancer types.
+##' If cancers == "all", only the first score in scores is plotted. In all other cases,
+##' all scores are plotted for the first cancer only. 
+##' @param results the result list from a prioritization run
+##' @param pathways vector with KEGG pathway IDs to plot; default: NULL (all pathways)
+##' @param cancers vector of names of cancer types to plot; default: all
+##' @param scores vector of names of the scores to plot; default: combined.score
+##' @param combine function for combining scores across all cancer for each gene (e.g. min, max);
+##' the function has to accept a logical na.rm parameter; default: NULL (do not combine, one plot per cancer)
+##' @param out.dir directory for output files; default: "."
+##' @param out.suffix suffix to be added to output plots; default: ""
+##' @param kegg.dir directory with predownloaded KEGG files; all new downloaded files will be stored there;
+##' @param multi.state logical, combine different samples or scores into one plot; default: FALSE
+##' default: "."
+##' @author Andreas Schlicker
+generatePathview = function(results, pathways, cancers="all", scores="combined.score", combine=NULL,
+							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE) {
+	require(pathview) || stop("Can't load required package \"pathview\"!")
+						
+	# Get the score matrix and combine them if necessary
+	if (cancers == "all") {
+		scoreMat = pathviewMat(results[cancers], scores[1])
+	} else {
+		scoreMat = results[[cancer[1]]]$prioritize.combined[, scores]
+	}
+	if (!is.null(combine)) {
+		scoreMat = apply(scoreMat, 1, combine, na.rm=TRUE)
+	}
+	
+	# Save working directory and switch to new one
+	oldwd = getwd()
+	setwd(out.dir)
+	
+	# Generate plots
+	for (path in pathways) {
+		invisible(pathview(gene.data=scoreMat, 
+				 		   pathway.id=path,
+				 		   kegg.native=TRUE, 
+		   				   gene.idtype="SYMBOL", 
+			   	 		   limit=list(gene=max(abs(scoreMat)), cpd=1), 
+			 		   	   node.sum="max.abs", 
+			 		   	   out.suffix=out.suffix,
+			 		   	   kegg.dir=kegg.dir,
+						   multi.state=multi.state))
+   	}
+	 
+	# Back to old directory
+	setwd(oldwd)
+}
