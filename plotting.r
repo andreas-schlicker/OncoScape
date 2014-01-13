@@ -551,11 +551,11 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 		}
 	}
 	
-	p = ggplot(dataframe, aes(x=x, y=y, fill=freq)) +
+	p = ggplot(dataframe, aes(x=x, y=y, fill=freq, label=freq)) +
 		geom_tile(color = "grey50") +
-		geom_text(aes(label=freq), size=10, fontface="bold", color="gray10") + 
+		geom_text(size=10, fontface="bold", color="gray10") + 
 		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
-		labs(title=title, xlab=xlab, ylab=ylab) + 
+		labs(title=title, x=xlab, y=ylab) + 
 		theme(title=element_text(color="black", size=20, face="bold"),
 			  axis.text=element_text(color="grey50", size=20, face="bold"),
 			  axis.title=element_text(color="grey50", size=20, face="bold"),
