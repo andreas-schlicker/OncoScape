@@ -743,7 +743,7 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 	if (cancers == "all") {
 		scoreMat = pathviewMat(results[cancers], scores[1])
 	} else {
-		scoreMat = results[[cancer[1]]]$prioritize.combined[, scores]
+		scoreMat = results[[cancers[1]]]$prioritize.combined[, scores]
 	}
 	if (!is.null(combine)) {
 		scoreMat = apply(scoreMat, 1, combine, na.rm=TRUE)
