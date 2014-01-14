@@ -713,7 +713,9 @@ pathviewMat = function(results, score="combined.score") {
 	rownames(res) = allGenes
 	colnames(res) = names(results)
 	for (n in names(results)) {
-		res[, n] = results[[n]]$prioritize.combined[allGenes, n, drop=FALSE]
+		temp = results[[n]]$prioritize.combined[, score, drop=FALSE]
+		names(temp) = rownames(results[[n]]$prioritize.combined)
+		res[, n] = temp[allGenes]
 	}
 	
 	res
@@ -734,13 +736,19 @@ pathviewMat = function(results, score="combined.score") {
 ##' @param kegg.dir directory with predownloaded KEGG files; all new downloaded files will be stored there;
 ##' @param multi.state logical, combine different samples or scores into one plot; default: FALSE
 ##' default: "."
+##' @param multiplier factor to multiply all scores with; can be used to transform tumor suppressor genes to 
+##' negative values; default: 1
 ##' @author Andreas Schlicker
 generatePathview = function(results, pathways, cancers="all", scores="combined.score", combine=NULL,
-							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE) {
+							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE, multiplier=1) {
 	require(pathview) || stop("Can't load required package \"pathview\"!")
-						
+	
 	# Get the score matrix and combine them if necessary
 	if (cancers == "all") {
+		cancers = names(results)
+	}
+	
+	if (length(cancers) > 1) {
 		scoreMat = pathviewMat(results[cancers], scores[1])
 	} else {
 		scoreMat = results[[cancers[1]]]$prioritize.combined[, scores]
@@ -748,6 +756,7 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 	if (!is.null(combine)) {
 		scoreMat = apply(scoreMat, 1, combine, na.rm=TRUE)
 	}
+	scoreMat = scoreMat * multiplier
 	
 	# Save working directory and switch to new one
 	oldwd = getwd()
@@ -759,7 +768,7 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 				 		   pathway.id=path,
 				 		   kegg.native=TRUE, 
 		   				   gene.idtype="SYMBOL", 
-			   	 		   limit=list(gene=max(abs(scoreMat)), cpd=1), 
+			   	 		   limit=list(gene=max(abs(scoreMat), na.rm=TRUE), cpd=1), 
 			 		   	   node.sum="max.abs", 
 			 		   	   out.suffix=out.suffix,
 			 		   	   kegg.dir=kegg.dir,
