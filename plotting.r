@@ -738,9 +738,12 @@ pathviewMat = function(results, score="combined.score") {
 ##' default: "."
 ##' @param multiplier factor to multiply all scores with; can be used to transform tumor suppressor genes to 
 ##' negative values; default: 1
+##' @param colors named list of colors for plotting gene values; if specified, has to contain elements for "low",
+##' "mid" and "high"; default: NULL
 ##' @author Andreas Schlicker
 generatePathview = function(results, pathways, cancers="all", scores="combined.score", combine=NULL,
-							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE, multiplier=1) {
+							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE, multiplier=1,
+							colors=NULL) {
 	require(pathview) || stop("Can't load required package \"pathview\"!")
 	
 	# Get the score matrix and combine them if necessary
@@ -762,6 +765,15 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 	oldwd = getwd()
 	setwd(out.dir)
 	
+	low = list(gene="green", cpd="blue")
+	mid = list(gene="gray", cpd="gray")
+	high = list(gene="red", cpd="yellow")
+	if (!is.null(colors)) {
+		low$gene = colors$low
+		mid$gene = colors$mid
+		high$gene = colors$high
+	}
+	
 	# Generate plots
 	for (path in pathways) {
 		invisible(pathview(gene.data=scoreMat, 
@@ -772,7 +784,8 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 			 		   	   node.sum="max.abs", 
 			 		   	   out.suffix=out.suffix,
 			 		   	   kegg.dir=kegg.dir,
-						   multi.state=multi.state))
+						   multi.state=multi.state,
+						   low=low, mid=mid, high=high))
    	}
 	 
 	# Back to old directory
