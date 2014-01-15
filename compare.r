@@ -30,9 +30,18 @@ alteredGenes = function(scoreDf, score="Combined") {
 	sort(unlist(lapply(split(scoreDf$score, scoreDf$gene), sum, na.rm=TRUE)))
 }
 
+##' Generates four plots summarizing the changes in a particular score.
+##' @param results1 list with baseline results
+##' @param results2 list with changed results
+##' @param score named list with the score to be summarized;
+##' The list element has to match a column name in the results matrices.
+##' The name of the element will be used as label.
+##' Combined.affected is a special score, which is translated to og.affected.rel - ts.affected.rel
+##' @return named list with four plots: (un-)faceted confusion heatmaps and (un-)faceted difference barplots
+##' @author Andreas Schlicker
 compareScore = function(results1, results2, score) {
-	res1.hdt = heatmapDataframe(results1, score)
-	res2.hdt = heatmapDataframe(results2, score)
+	res1.hdt = heatmapDataframe(results1, score[1])
+	res2.hdt = heatmapDataframe(results2, score[1])
 	combined = data.frame()
 	for (cancType in as.character(unique(res1.hdt[, "cancer"]))) {
 		temp1 = res1.hdt[which(res1.hdt[, "cancer"] == cancType), ]
