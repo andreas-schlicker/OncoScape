@@ -59,13 +59,8 @@ boxplot = function(group1, group2,
 ##' @return the plot
 ##' @author Andreas Schlicker
 achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, main="") {
-	if (!require(ggplot2)) {
-		stop("Can't load required package \"ggplot2\"!")
-	}
-	
-	if (!require(stringr)) {
-		stop("Can't load required package \"stringr\"!")
-	}
+	require(ggplot2) || stop("Can't load required package \"ggplot2\"!")
+	require(stringr) || stop("Can't load required package \"stringr\"!")
 	
 	plotting.df = data.frame(phenoscore=scores, 
 							 cls=sapply(names(scores), function(x) { str_sub(x, start=1, end=str_locate(x, "_")[1, 1]-1) }))
@@ -540,6 +535,9 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 ##' @author Andreas Schlicker (adopted from function ggfluctuation() in ggplot2
 confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 							title=colnames(dataframe)[3], xlab=colnames(dataframe)[1], ylab=colnames(dataframe)[2]) {
+	require(ggplot2) || stop("Can't load required package \"ggplot2\"!")
+	require(stringr) || stop("Can't load required package \"stringr\"!")
+						
 	names(dataframe)[1:3] = c("x", "y", "freq")
 	
 	if (is.null(facet)) {
@@ -586,6 +584,7 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 barplot = function(dataframe, facet="cancer", ncol=3, 
 				   x="score.diff", y=NULL, stat="bin",			   
 				   title="", xlab="", ylab="", fill="gray30") {
+    require(ggplot2) || stop("Can't load required package \"ggplot2\"!")
 	
 	dataframe[, x] = as.factor(dataframe[, x])
 	
@@ -620,7 +619,7 @@ barplot = function(dataframe, facet="cancer", ncol=3,
 conHeatDf = function(dataframe) {
 	res.df = data.frame()
 	for (cancType in unique(dataframe[, "cancer"])) {
-		tempTab = table(subset(combined, cancer == cancType)[, c("score", "score2")])
+		tempTab = table(subset(dataframe, cancer == cancType)[, c("score", "score2")])
 		res.df = rbind(res.df, data.frame(x=rep(rownames(tempTab), times=2),
 										  y=rep(colnames(tempTab), each=2),
 										  freq=as.vector(tempTab),
