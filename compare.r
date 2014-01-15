@@ -52,9 +52,9 @@ compareScore = function(results1, results2, score) {
 							   score.diff=temp2[match(temp1[, "gene"], temp2[, "gene"]), "score"]))
 	}
 	
-	p1 = confusionHeatmap(conHeatDf(combined), xlab="baseline", ylab="altered score", title="")
+	p1 = confusionHeatmap(conHeatDf(combined), xlab="altered score", ylab="baseline score", title="")
 	p2 = barplot(combined)
-	p3 = confusionHeatmap(conHeatDf(combined), facet=NULL, xlab="baseline", ylab="altered score", title="")
+	p3 = confusionHeatmap(conHeatDf(combined), facet=NULL, xlab="altered score", ylab="baseline score", title="")
 	p4 = barplot(combined, facet=NULL)
 	
 	list(confusion=p1, difference=p2, confusionSum=p3, differenceSum=p4)
