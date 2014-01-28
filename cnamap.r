@@ -202,12 +202,15 @@ corCnaExprs = function(cna.data, exprs.data, genes) {
 				      cor.p=rep(NA, times=length(genes)), stringsAsFactors=FALSE)
 	rownames(cors) = genes
 	for (x in common.genes) {
-		tempCor = cor.test(exprs.data[x, ], 
-						   cna.data[x, ], 
-						   method="spearman", 
-						   use="pairwise.complete.obs",
-						   exact=FALSE)
-		cors[x, ] = c(x, tempCor$estimate, tempCor$p.value)
+		tempCor = tryCatch(cor.test(exprs.data[x, ], 
+						   			cna.data[x, ], 
+						   			method="spearman", 
+						   			use="pairwise.complete.obs",
+						   			exact=FALSE),
+							error=function(x) NA)
+		if (!is.na(tempCor)) {
+			cors[x, ] = c(x, tempCor$estimate, tempCor$p.value)
+		}
 	}
 	
 	cors[, 2] = as.numeric(cors[, 2])
