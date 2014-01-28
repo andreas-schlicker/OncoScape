@@ -223,7 +223,7 @@ summarizeMethylation = function(tumors,
 	bodyCounter = 1
 	tsc.rest = integer(nrow(significant.cors))
 	restCounter = 1
-	if (length(significant.cors > 0)) {
+	if (nrow(significant.cors) > 0) {
 		if (!gene.region) {
 			tsc.rest = which(significant.cors[, "cor"] < 0)
 		} else {
