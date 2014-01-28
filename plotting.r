@@ -620,8 +620,8 @@ conHeatDf = function(dataframe) {
 	res.df = data.frame()
 	for (cancType in unique(dataframe[, "cancer"])) {
 		tempTab = table(subset(dataframe, cancer == cancType)[, c("score", "score2")])
-		res.df = rbind(res.df, data.frame(x=rep(rownames(tempTab), times=2),
-										  y=rep(colnames(tempTab), each=2),
+		res.df = rbind(res.df, data.frame(x=rep(rownames(tempTab), times=nrow(tempTab)),
+										  y=rep(colnames(tempTab), each=ncol(tempTab)),
 										  freq=as.vector(tempTab),
 										  cancer=cancType))
 	}
