@@ -223,23 +223,25 @@ summarizeMethylation = function(tumors,
 	bodyCounter = 1
 	tsc.rest = integer(nrow(significant.cors))
 	restCounter = 1
-	if (!gene.region) {
-		tsc.rest = which(significant.cors[, "cor"] < 0)
-	} else {
-		tmpSigCorsGreater = significant.cors[, "cor"] > 0
-		tmpSigCorsSmaller = significant.cors[, "cor"] < 0
-		for (i in 1:nrow(significant.cors)) {
-			if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]]) {
-				# We have a body probe --> positive correlation is expected
-				# Note: This might not be true for 1st exon probes, but they are annotated separately
-				if (tmpSigCorsGreater[i]) {
-					tsc.body[bodyCounter] = i
-					bodyCounter = bodyCounter + 1
+	if (length(significant.cors > 0)) {
+		if (!gene.region) {
+			tsc.rest = which(significant.cors[, "cor"] < 0)
+		} else {
+			tmpSigCorsGreater = significant.cors[, "cor"] > 0
+			tmpSigCorsSmaller = significant.cors[, "cor"] < 0
+			for (i in 1:nrow(significant.cors)) {
+				if (significant.cors[i, "gene"] %in% probe2gene[[significant.cors[i, "probe"]]][["Body"]]) {
+					# We have a body probe --> positive correlation is expected
+					# Note: This might not be true for 1st exon probes, but they are annotated separately
+					if (tmpSigCorsGreater[i]) {
+						tsc.body[bodyCounter] = i
+						bodyCounter = bodyCounter + 1
+					}
+				} else if (tmpSigCorsSmaller[i]) {
+					# We have a probe that is not in the gene body --> expect negative correlation
+					tsc.rest[restCounter] = i
+					restCounter = restCounter + 1
 				}
-			} else if (tmpSigCorsSmaller[i]) {
-				# We have a probe that is not in the gene body --> expect negative correlation
-				tsc.rest[restCounter] = i
-				restCounter = restCounter + 1
 			}
 		}
 	}
