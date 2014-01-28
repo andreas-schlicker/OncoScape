@@ -539,6 +539,8 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 	require(stringr) || stop("Can't load required package \"stringr\"!")
 						
 	names(dataframe)[1:3] = c("x", "y", "freq")
+	dataframe[, "x"] = factor(dataframe[, "x"], levels=sort(as.integer(levels(dataframe[, "x"]))))
+	dataframe[, "y"] = factor(dataframe[, "y"], levels=sort(as.integer(levels(dataframe[, "y"]))))
 	
 	if (is.null(facet)) {
 		temp = unlist(lapply(split(dataframe$freq, list(dataframe$x, dataframe$y)), sum))
