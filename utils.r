@@ -172,8 +172,10 @@ countAffectedSamples = function(features, test.features=features, tumors, normal
 		if (length(common) > 0) {
 			matched.samples = intersect(colnames(tumors), colnames(normals))
 			if (length(matched.samples) == 0) {
+				if (paired) {
+					warning("countAffectedSamples: No paired samples found. Performing unpaired analysis!")
+				}
 				paired = FALSE
-				warning("countAffectedSamples: No paired samples found. Performing unpaired analysis!")
 			}
 			if (paired) {
 				# Which tumor samples have a matched normal?
