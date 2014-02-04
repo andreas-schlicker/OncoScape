@@ -239,7 +239,7 @@ sampleUnion = function(samples, use=NULL) {
 		res = union(res, samples[[i]])
 	}
 	
-	res
+	res[!is.na(res)]
 }
 
 ##' Imputes missing data using the impute.knn function as implemented 
