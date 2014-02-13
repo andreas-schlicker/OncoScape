@@ -307,13 +307,18 @@ doFilter = function(vec1, vec2, restrict=NULL, paired=TRUE) {
 ##' an empty vector otherwise.
 ##' @param gene gene to pull out
 ##' @param inpList named input list
+##' @param restrict vector of samples used for the analysis
 ##' @return vector from the list
 ##' @author Andreas Schlicker
-ifPresent = function(gene, inpList) {
+ifPresent = function(gene, inpList, restrict=NULL) {
 	if (!is.null(names(inpList)) && gene %in% names(inpList)) { 
 		res = inpList[[gene]] 
 	} else {
 		res = c()
+	}
+	
+	if (!is.null(restrict)) {
+		res = intersect(res, restrict)
 	}
 	
 	res
