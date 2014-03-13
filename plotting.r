@@ -735,8 +735,8 @@ pathviewMat = function(results, score="combined.score") {
 ##' @param out.dir directory for output files; default: "."
 ##' @param out.suffix suffix to be added to output plots; default: ""
 ##' @param kegg.dir directory with predownloaded KEGG files; all new downloaded files will be stored there;
-##' @param multi.state logical, combine different samples or scores into one plot; default: FALSE
 ##' default: "."
+##' @param multi.state logical, combine different samples or scores into one plot; default: FALSE
 ##' @param multiplier factor to multiply all scores with; can be used to transform tumor suppressor genes to 
 ##' negative values; default: 1
 ##' @param colors named list of colors for plotting gene values; if specified, has to contain elements for "low",
