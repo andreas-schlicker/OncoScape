@@ -289,7 +289,7 @@ summarizeMethylation = function(tumors,
 	rownames(summary) = genes
 	colnames(summary) = c("absolute", "relative")
 	samples = list()
-	for (gene in unique(significant.cors$gene)) {
+	for (gene in unique(as.character(significant.cors$gene))) {
 		allProbes = gene2probe.flat[[gene]]
 		# Get the ratio of (#significant probes with higher methylation) / (#all probes)
 		gene.scores[gene] = length(intersect(significant.probes, allProbes)) / length(allProbes)
