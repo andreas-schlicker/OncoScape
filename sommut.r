@@ -66,9 +66,9 @@ doMutationAnalysis = function(mutations, genes=NULL,
 		mutations = mutations[which(mutations[, filtercol] >= filter), ]
 	}
 	
-	res = matrix(NA, nrow=length(genes), ncol=6)
+	res = matrix(NA, nrow=length(genes), ncol=8)
 	rownames(res) = genes
-	colnames(res) = c("og", "ts", "total.mutations", "unique.mutations", "mutated.samples", "total.samples")
+	colnames(res) = c("og", "ts", "total.mutations", "unique.mutations", "mutated.samples", "total.samples", "ts.mutations", "og.mutations")
 	res[, "total.samples"] = length(unique(mutations[, samplecol]))
 	
 	for (gene in genes) {
@@ -95,6 +95,8 @@ doMutationAnalysis = function(mutations, genes=NULL,
 		res[gene, "unique.mutations"] = length(unique(apply(muts, 1, function(x) { mutationId(x, c(chromcol, startcol, endcol)) })))
 		# Count the number of distinct samples with mutations in that gene
 		res[gene, "mutated.samples"] = length(unique(muts[, samplecol]))
+		res[gene, "og.mutations"] = sum(missense) + sum(inframe_del) + sum(inframe_ins)
+		res[gene, "ts.mutations"] = res[gene, "ts"] * nrow(muts)		
 	}
 	
 	res
@@ -136,9 +138,9 @@ summarizeMutations = function(mutations, mut.analysis,
 	}
   
 	if (score == "ts") {
-		gene.scores = as.integer((mut.analysis[, "ts"] > ts.cutoff | (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] > ts.cutoff.low))[common])
+		gene.scores = as.integer((mut.analysis[, "ts.mutations"] >= 5) & (mut.analysis[, "ts"] > ts.cutoff | (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] > ts.cutoff.low))[common])
 	} else {
-		gene.scores = as.integer((mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
+		gene.scores = as.integer((mut.analysis[, "og.mutations"] >= 5) & (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
 	}
 	names(gene.scores) = common
 	gene.scores[missing] = 0

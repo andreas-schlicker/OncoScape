@@ -256,6 +256,9 @@ summarizeMethylation = function(tumors,
 										 names(which(compareBody(meth.analysis$diffs[unique(significant.cors[tsc.body, "probe"])], diff.cutoff)))))
 	# Wilcoxon significance filter
 	significant.probes = names(which(meth.analysis$wilcox[significant.probes, "wilcox.FDR"] <= wilcox.FDR))
+
+	# Retain only significant gene expression correlations
+	significant.cors = significant.cors[significant.cors[, "probe"] %in% significant.probes, ]
 	
 	# Retain only significant gene expression correlations
 	significant.cors = significant.cors[significant.cors[, "probe"] %in% significant.probes, ]
