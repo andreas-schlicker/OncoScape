@@ -257,6 +257,9 @@ summarizeMethylation = function(tumors,
 	# Wilcoxon significance filter
 	significant.probes = names(which(meth.analysis$wilcox[significant.probes, "wilcox.FDR"] <= wilcox.FDR))
 	
+	# Retain only significant gene expression correlations
+	significant.cors = significant.cors[significant.cors[, "probe"] %in% significant.probes, ]
+	
 	## Find affected samples per probe
 	bodyprobes = intersect(significant.probes, significant.cors[tsc.body, "probe"])
 	nonbodyprobes = intersect(significant.probes, significant.cors[tsc.rest, "probe"])
@@ -283,7 +286,7 @@ summarizeMethylation = function(tumors,
 	rownames(summary) = genes
 	colnames(summary) = c("absolute", "relative")
 	samples = list()
-	for (gene in genes) {
+	for (gene in significant.cors$gene) {
 		allProbes = gene2probe.flat[[gene]]
 		# Get the ratio of (#significant probes with higher methylation) / (#all probes)
 		gene.scores[gene] = length(intersect(significant.probes, allProbes)) / length(allProbes)
