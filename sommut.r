@@ -112,6 +112,8 @@ doMutationAnalysis = function(mutations, genes=NULL,
 ##' @param og.cutoff cut-off for the oncogene score; default: 0.2
 ##' @param ts.cutoff cut-off for the tumor suppressor score; default: 0.2
 ##' @param ts.cutoff.log cut-off for the low tumor suppressor score; default: 0.05
+##' @param no.og.mutations minimum number of oncogene-type mutations for scoring oncogenes; default: 5
+##' @param no.ts.mutations minimum number of tumor suppressor-type mutations for scoring tumor suppressors; default: 5
 ##' @param score either "ts" or "og" to score tumor suppressors or oncogenes, respectively
 ##' @param genecol index of the gene id column; default: 1
 ##' @param typecol index of the mutation type column; default: 9
@@ -121,6 +123,7 @@ doMutationAnalysis = function(mutations, genes=NULL,
 summarizeMutations = function(mutations, mut.analysis, 
 							  genes=NULL, samples=NULL,
 							  og.cutoff=0.2, ts.cutoff=0.2, ts.cutoff.low=0.05, 
+							  no.og.mutations=5, no.ts.mutations=5,
 							  score=c("ts", "og"),
 							  genecol=1, typecol=9, samplecol=16) {
 	score = match.arg(score)
@@ -138,9 +141,9 @@ summarizeMutations = function(mutations, mut.analysis,
 	}
   
 	if (score == "ts") {
-		gene.scores = as.integer((mut.analysis[, "ts.mutations"] >= 5) & (mut.analysis[, "ts"] > ts.cutoff | (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] > ts.cutoff.low))[common])
+		gene.scores = as.integer((mut.analysis[, "ts.mutations"] >= no.ts.mutations) & (mut.analysis[, "ts"] > ts.cutoff | (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] > ts.cutoff.low))[common])
 	} else {
-		gene.scores = as.integer((mut.analysis[, "og.mutations"] >= 5) & (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
+		gene.scores = as.integer((mut.analysis[, "og.mutations"] >= no.og.mutations) & (mut.analysis[, "og"] > og.cutoff & mut.analysis[, "ts"] < ts.cutoff.low)[common])
 	}
 	names(gene.scores) = common
 	gene.scores[missing] = 0
