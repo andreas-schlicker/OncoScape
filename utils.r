@@ -375,7 +375,8 @@ getOptionList = function(options) {
 			   filtersnps=make_option(c("-l", "--filtersnps"), type="character", help="Determines whether methylation probes containing SNPs should be filtered out (comma-separated list of SNP_target, SNP_within_10, SNP_outside_10, SNP_probe or none)", default="SNP_target,SNP_within_10,SNP_outside_10,SNP_probe"),
 			   result1=make_option(c("-1", "--result1"), type="character", help="First RData file with prioritization results"),
 			   result2=make_option(c("-2", "--result2"), type="character", help="Second RData file with prioritization results"),
-			   cellline=make_option(c("-b", "--cellline"), type="character", help="Which cell line data set to use, if any", default="none"))
+			   cellline=make_option(c("-b", "--cellline"), type="character", help="Which cell line data set to use, if any", default="none"),
+			   combat=make_option(c("-z", "--combat"), type="character", help="Use Combat batch corrected data with cell lines", default="none"))
 	   
 	all[options]
 }
