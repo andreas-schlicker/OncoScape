@@ -741,10 +741,11 @@ pathviewMat = function(results, score="combined.score") {
 ##' negative values; default: 1
 ##' @param colors named list of colors for plotting gene values; if specified, has to contain elements for "low",
 ##' "mid" and "high"; default: NULL
+##' @param limit absolute maximal score for plotting the pathway map; default: NULL
 ##' @author Andreas Schlicker
 generatePathview = function(results, pathways, cancers="all", scores="combined.score", combine=NULL,
 							out.dir=".", out.suffix="", kegg.dir=".", multi.state=FALSE, multiplier=1,
-							colors=NULL) {
+							colors=NULL, limit=NULL) {
 	require(pathview) || stop("Can't load required package \"pathview\"!")
 	
 	# Get the score matrix and combine them if necessary
@@ -775,13 +776,15 @@ generatePathview = function(results, pathways, cancers="all", scores="combined.s
 		high$gene = colors$high
 	}
 	
+	limit = ifelse(is.null(limit), max(abs(scoreMat), na.rm=TRUE), limit)
+	
 	# Generate plots
 	for (path in pathways) {
 		invisible(pathview(gene.data=scoreMat, 
 				 		   pathway.id=path,
 				 		   kegg.native=TRUE, 
 		   				   gene.idtype="SYMBOL", 
-			   	 		   limit=list(gene=max(abs(scoreMat), na.rm=TRUE), cpd=1), 
+			   	 		   limit=list(gene=limit, cpd=1), 
 			 		   	   node.sum="max.abs", 
 			 		   	   out.suffix=out.suffix,
 			 		   	   kegg.dir=kegg.dir,
