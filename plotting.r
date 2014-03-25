@@ -13,12 +13,14 @@
 ##' @param main main header for the plot
 ##' @param pvalue pvalue that will be added to the plot as text
 ##' @param color.palette character vector with colors for plotting
+##' @param size point size; default=3
 ##' @return the boxplot
 ##' @author Andreas Schlicker
 boxplot = function(group1, group2, 
 				   lab.group1="group1", lab.group2="group2", 
 				   xlabel="", ylabel="", main=NULL, pvalue=NULL,
-				   color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) {
+				   color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+				   size=3) {
 	if (!require(ggplot2)) {
 		stop("Can't load required package \"ggplot2\"!")
 	}
@@ -29,7 +31,7 @@ boxplot = function(group1, group2,
 	
 	p = ggplot(temp, aes(x=group, y=values, fill=group)) +
 		geom_boxplot(outlier.size=0, aes(alpha=0.3)) +
-		geom_jitter(size=3) +
+		geom_jitter(size=size) +
 		guides(fill=FALSE, alpha=FALSE) +
 		scale_fill_manual(values=color.palette) +
 		geom_hline(yintercept=0, linetype=1) +
@@ -182,7 +184,7 @@ plotGene = function(gene, prior.details, samples=NULL,
 					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.diff.fdr"],
-					 color.palette=color.palette)
+					 color.palette=color.palette, size=size)
 	
 	# Copy number plot
 	samp1 = colnames(acgh.group1)
@@ -199,7 +201,7 @@ plotGene = function(gene, prior.details, samples=NULL,
 	cn.box = boxplot(acgh.group1[gene, samp1], acgh.group2[gene, samp2], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "copy number"), main=NULL, pvalue=pvalue,
-					 color.palette)
+					 color.palette, size=size)
 			 
 	# Achilles plot
 	achil = achillesBarplot(achilles, achilles.ut, achilles.lt, main="")
