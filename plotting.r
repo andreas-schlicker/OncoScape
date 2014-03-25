@@ -67,8 +67,8 @@ achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, m
 	
 	p = barplot(plotting.df, facet=NULL, x="cls", y="phenoscore", stat="identity", 
 				title=main, xlab="Cell lines", ylab="Achilles phenotype score", fill="#767676") +
-		geom_hline(yintercept=0, linetype=1) +
-		theme(axis.text.x=element_text(face='bold', size=25, angle=45, vjust=0.5))
+				geom_hline(yintercept=0, linetype=1) +
+				theme(axis.text.x=element_text(face='bold', size=25, angle=45, vjust=0.5))
 					 
 	if (!is.null(upper.threshold)) {
 		p = p + geom_hline(yintercept=upper.threshold, linetype=2)
@@ -596,7 +596,7 @@ barplot = function(dataframe, facet="cancer", ncol=3,
 	if (is.null(y)) {
 		p = ggplot(dataframe, aes_string(x=x), fill=fill)
 	} else {
-		p = ggplot(dataframe, aes_string(x=x, y=x), fill=fill)
+		p = ggplot(dataframe, aes_string(x=x, y=y), fill=fill)
 	}
 	
 	p = p + geom_bar(binwidth=0.25, stat=stat) + 
