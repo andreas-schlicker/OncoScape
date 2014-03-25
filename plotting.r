@@ -214,8 +214,9 @@ plotGene = function(gene, prior.details, samples=NULL,
 		samp2 = intersect(samples, colnames(meth.group2))
 	}
 	
-	meth.probes = intersect(rownames(meth.anno[which(meth.anno[, "Gene_symbols_unique"] == gene), ]),
+	meth.probes = intersect(rownames(meth.anno[grep(gene, meth.anno[, "Gene_symbols_unique"]), ]),
 							intersect(rownames(meth.group1), rownames(meth.group2)))
+	meth.probes = meth.probes[order(meth.anno[meth.probes, "Coordinate_37"])]
 	meth = scatterplot(meth.group1[meth.probes, samp1], meth.group2[meth.probes, samp2], 
 					   error.bar="se", lab.group1=lab.group1, lab.group2=lab.group2, main=NULL,
 					   color.palette=color.palette, size=size, width=width)
