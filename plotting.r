@@ -70,7 +70,7 @@ achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, m
 	p = barplot(plotting.df, facet=NULL, x="cls", y="phenoscore", stat="identity", 
 				title=main, xlab="Cell lines", ylab="Achilles phenotype score", fill="#767676") +
 				geom_hline(yintercept=0, linetype=1) +
-				theme(axis.text.x=element_text(face='bold', color="grey80", size=25, angle=45, vjust=0.5))
+				theme(axis.text.x=element_text(face='bold', color="grey30", size=25, angle=45, vjust=0.5))
 					 
 	if (!is.null(upper.threshold)) {
 		p = p + geom_hline(yintercept=upper.threshold, linetype=2)
@@ -129,7 +129,7 @@ scatterplot = function(meth.group1, meth.group2,
 		xlab("Methylation probes") +
 		ylab("Average beta value") + 
 		generateTheme() + 
-		theme(axis.text.x=element_text(face='bold', color="grey80", size=25, angle=90))
+		theme(axis.text.x=element_text(face='bold', color="grey30", size=25, angle=90))
 	
 	if (error.bar == "se") {
 		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-se, ymax=beta+se), width=width, position=pd)
@@ -228,8 +228,8 @@ plotGene = function(gene, prior.details, samples=NULL,
 ##' @return the theme
 ##' @author Andreas Schlicker
 generateTheme = function() {
-	theme(title=element_text(face='bold', color="grey80", size=25),
-		  text=element_text(face='bold', color="grey80", size=25),
+	theme(title=element_text(face='bold', color="grey30", size=25),
+		  text=element_text(face='bold', color="grey30", size=25),
 		  panel.background = element_rect(fill='grey95', color="grey95"))
 }
 
