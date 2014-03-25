@@ -228,16 +228,9 @@ plotGene = function(gene, prior.details, samples=NULL,
 ##' @return the theme
 ##' @author Andreas Schlicker
 generateTheme = function() {
-	theme(plot.title=element_text(face='bold', size=25),
-		  panel.background = element_rect(fill='grey95', color="grey95"),
-		  axis.text.x=element_text(face='bold', size=25),
-		  axis.title.x=element_text(face='bold', size=25),
-		  axis.text.y=element_text(face='bold', size=25),
-		  axis.title.y=element_text(face='bold', size=25),
-		  legend.text=element_text(face="bold", size=25),
-		  legend.title=element_text(face="bold", size=25),
-		  strip.text.x = element_text(face="bold", size=25),
-		  strip.text.y = element_text(face="bold", size=25))
+	theme(title=element_text(face='bold', color="grey80", size=25),
+		  text=element_text(face='bold', color="grey80", size=25),
+		  panel.background = element_rect(fill='grey95', color="grey95"))
 }
 
 ## Taken from: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_%28ggplot2%29/
