@@ -92,12 +92,15 @@ achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, m
 ##' @param lab.group2 label for group2
 ##' @param main main header for the plot
 ##' @param color.palette colors for plotting
+##' @param size point size; default=4
+##' @param width error bar width; default=0.2
 ##' @return the scatterplot
 ##' @author Andreas Schlicker
 scatterplot = function(meth.group1, meth.group2, 
 					   error.bar=c("se", "ci", "none"), conf.interval=0.95,
 					   lab.group1="group1", lab.group2="group2", main=NULL,
-					   color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) {
+					   color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+					   size=4, width=0.2) {
 				   
 	error.bar = match.arg(error.bar)
 	
@@ -117,7 +120,7 @@ scatterplot = function(meth.group1, meth.group2,
 	pd = position_dodge(0.5)
 	
 	p = ggplot(plotting.df, aes(x=probe, y=beta, shape=group, color=group)) +
-		geom_point(size=4, position=pd) +
+		geom_point(size=size, position=pd) +
 		scale_shape_manual(name="", values=c(15, 16)) +
 		scale_color_manual(name="", values=color.palette) +
 		ylim(0,1) +
@@ -127,9 +130,9 @@ scatterplot = function(meth.group1, meth.group2,
 		theme(axis.text.x=element_text(face='bold', size=25, angle=90))
 	
 	if (error.bar == "se") {
-		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-se, ymax=beta+se), width=0.2, position=pd)
+		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-se, ymax=beta+se), width=width, position=pd)
 	} else if (error.bar == "ci") {
-		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-ci, ymax=beta+ci), width=0.2, position=pd)
+		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-ci, ymax=beta+ci), width=width, position=pd)
 	}
 	
 	if (!is.null(main)) {
@@ -157,6 +160,8 @@ scatterplot = function(meth.group1, meth.group2,
 ##' @param lab.group1 label for group 1; default: Tumors
 ##' @param lab.group2 label for group 2; default: Normals
 ##' @param color.palette colors to use for plotting
+##' @param size point size; default=2
+##' @param width error bar width; default=0.2
 ##' @return the combined plots
 ##' @author Andreas Schlicker
 plotGene = function(gene, prior.details, samples=NULL, 
@@ -165,7 +170,8 @@ plotGene = function(gene, prior.details, samples=NULL,
 					acgh.group1, acgh.group2, 
 					achilles, achilles.ut, achilles.lt, 
 					lab.group1="Tumors", lab.group2="Normals", 
-					color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) {
+					color.palette=c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"),
+					size=4, width=0.2) {
 
 	# Gene expression plot
 	samp1 = colnames(exprs.group1)
@@ -175,13 +181,8 @@ plotGene = function(gene, prior.details, samples=NULL,
 	ge.box = boxplot(exprs.group1[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
 					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
 					 lab.group1, lab.group2, 
-					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
+					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.diff.fdr"],
 					 color.palette=color.palette)
-#	ge.box = boxplot(exprs.group1[gene, intersect(samp1, colnames(exprs.group1))], 
-#			exprs.group2[gene, intersect(samp1, colnames(exprs.group2))], 
-#			lab.group1, lab.group2, 
-#			xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, pvalue=prior.details[gene, "exprs.bh"],
-#			color.palette=color.palette)
 	
 	# Copy number plot
 	samp1 = colnames(acgh.group1)
@@ -190,8 +191,8 @@ plotGene = function(gene, prior.details, samples=NULL,
 		samp1 = intersect(samples, colnames(acgh.group1))
 		samp2 = intersect(samples, colnames(acgh.group2))
 	}
-	if (length(intersect(colnames(prior.details), "cgh.bh")) == 1) {
-		pvalue = prior.details[gene, "cgh.bh"]
+	if (length(intersect(colnames(prior.details), "cgh.diff.fdr")) == 1) {
+		pvalue = prior.details[gene, "cgh.diff.fdr"]
 	} else { 
 		pvalue = NA
 	}
@@ -210,10 +211,12 @@ plotGene = function(gene, prior.details, samples=NULL,
 		samp1 = intersect(samples, colnames(meth.group1))
 		samp2 = intersect(samples, colnames(meth.group2))
 	}
-	meth.probes = rownames(meth.anno[which(meth.anno[, "genesym"] == gene), ])
+	
+	meth.probes = intersect(rownames(meth.anno[which(meth.anno[, "Gene_symbols_unique"] == gene), ]),
+							intersect(rownames(meth.group1), rownames(meth.group2)))
 	meth = scatterplot(meth.group1[meth.probes, samp1], meth.group2[meth.probes, samp2], 
 					   error.bar="se", lab.group1=lab.group1, lab.group2=lab.group2, main=NULL,
-					   color.palette=color.palette)
+					   color.palette=color.palette, size=size, width=width)
 			   
 	list(gene.expression=ge.box, acgh=cn.box, achilles=achil, methylation=meth)
 }
