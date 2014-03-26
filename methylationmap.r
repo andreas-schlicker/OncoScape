@@ -305,9 +305,9 @@ summarizeMethylation = function(tumors,
 	
 	samples[setdiff(genes, names(samples))] = c()
 	
-	gene.scores = sapply(gene.scores, function(x) { as.integer(x > score.cutoff) })
-	
-	list(scores=gene.scores, summary=summary, samples=samples, meth.analysis=meth.analysis)
+	gene.scores.called = sapply(gene.scores, function(x) { as.integer(x > score.cutoff) })
+
+	list(scores=gene.scores.called, exact.scores=gene.scores, summary=summary, samples=samples, meth.analysis=meth.analysis)
 }
 
 ##' Summarizes the results of analyzing methylation data.
