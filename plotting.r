@@ -185,7 +185,7 @@ plotGene = function(gene, prior.details, samples=NULL,
 					 exprs.group2[gene, intersect(samp1, intersect(colnames(exprs.group1), colnames(exprs.group2)))], 
 					 lab.group1, lab.group2, 
 					 xlabel=NULL, ylabel=paste(gene, "expression"), main=NULL, 
-					 pvalue=ifelse(pvalue, prior.details[gene, "exprs.diff.fdr"], NULL),
+					 pvalue=ifelse(pvalue, prior.details[gene, "exprs.diff.fdr"], NA),
 					 color.palette=color.palette, size=size)
 	
 	# Copy number plot
