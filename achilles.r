@@ -10,7 +10,7 @@
 fetchValues = function(mat, gene, cls) {
 	res = NA
 	if (gene %in% rownames(mat)) {
-		res = mat[gene, cls]
+		res = mat[gene, cls, drop=FALSE]
 	}
 	
 	res
