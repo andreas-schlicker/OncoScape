@@ -70,7 +70,7 @@ achillesBarplot = function(scores, upper.threshold=NULL, lower.threshold=NULL, m
 	p = barplot(plotting.df, facet=NULL, x="cls", y="phenoscore", stat="identity", 
 				title=main, xlab="Cell lines", ylab="Achilles phenotype score", fill="#767676") +
 				geom_hline(yintercept=0, linetype=1) +
-				theme(axis.text.x=element_text(face='bold', color="grey30", size=25, angle=45, vjust=0.5))
+				theme(axis.text.x=element_text(face='bold', color="gray30", size=25, angle=45, vjust=0.5))
 					 
 	if (!is.null(upper.threshold)) {
 		p = p + geom_hline(yintercept=upper.threshold, linetype=2)
@@ -129,7 +129,7 @@ scatterplot = function(meth.group1, meth.group2,
 		xlab("Methylation probes") +
 		ylab("Average beta value") + 
 		generateTheme() + 
-		theme(axis.text.x=element_text(face='bold', color="grey30", size=25, angle=90))
+		theme(axis.text.x=element_text(face='bold', color="gray30", size=25, angle=90))
 	
 	if (error.bar == "se") {
 		p = p + geom_errorbar(data=plotting.df, aes(ymin=beta-se, ymax=beta+se), width=width, position=pd)
@@ -230,9 +230,9 @@ plotGene = function(gene, prior.details, samples=NULL,
 ##' @return the theme
 ##' @author Andreas Schlicker
 generateTheme = function() {
-	theme(title=element_text(face='bold', color="grey30", size=25),
-		  text=element_text(face='bold', color="grey30", size=25),
-		  panel.background = element_rect(fill='grey95', color="grey95"))
+	theme(title=element_text(face='bold', color="gray30", size=25),
+		  text=element_text(face='bold', color="gray30", size=25),
+		  panel.background = element_rect(fill='gray95', color="gray95"))
 }
 
 ## Taken from: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_%28ggplot2%29/
@@ -347,8 +347,10 @@ getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.lo
 			geom_tile(aes(fill=score), color = "white") + 
 			labs(title=title, x=xlab, y=ylab) +
 			theme(panel.background=element_rect(color="white", fill="white"),
-					axis.ticks=element_blank(), 
-					axis.text.x=element_text(color="grey50", face="bold")) +
+				  axis.ticks=element_blank(), 
+				  axis.text.x=element_text(color="gray30", face="bold", size=20),
+				  legend.text=element_text(color="gray30", face="bold", size=20),
+				  legend.title=element_blank()) +
 			yaxis.theme
 	
 	if (!is.null(color.mid)) {
@@ -380,12 +382,12 @@ getDistPlot = function(dataFrame, facets, plot.type=c("histogram", "density"),
 	plot.type = match.arg(plot.type)
 	
 	p = ggplot(dataFrame, aes(x=score, fill=score.type, color=score.type)) + 
-			scale_fill_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "grey60")) +
-			scale_color_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "grey60")) +
+			scale_fill_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "gray60")) +
+			scale_color_manual("Score", breaks=c("OG", "TS", "Combined"), values=c("#b52c2c", "#1575c6", "gray60")) +
 			scale_x_continuous(breaks=-4:4) + 
 			facet_wrap(formula(facets), ncol=ncol) +
 			labs(title=title, x=xlab, y=ylab) + 
-			theme(axis.text=element_text(color="grey50", face="bold"))
+			theme(axis.text=element_text(color="gray30", face="bold"))
 	
 	if (plot.type == "histogram") {
 		p = p + geom_histogram(binwidth=0.5, position="dodge")
@@ -461,12 +463,12 @@ scoreBoxplot = function(results, groups=NULL, score="combined.score", title="", 
 			geom_jitter(size=1) +
 			facet_wrap(~ Cancer, ncol=4) +
 			labs(title=title, xlab=xlab, ylab=ylab) +
-			theme(axis.title=element_text(color="grey50", face="bold", size=20),
-					axis.text=element_text(color="grey50", face="bold", size=20),
-					legend.text=element_text(color="grey50", face="bold", size=20),
+			theme(axis.title=element_text(color="gray30", face="bold", size=20),
+					axis.text=element_text(color="gray30", face="bold", size=20),
+					legend.text=element_text(color="gray30", face="bold", size=20),
 					legend.title=element_text(color="black", face="bold", size=20),
 					legend.key.size=unit(1, "cm"),
-					strip.text=element_text(color="grey20", face="bold", size=20))
+					strip.text=element_text(color="gray30", face="bold", size=20))
 	
 	p
 }
@@ -520,8 +522,8 @@ scoreHistogram = function(results, groups, score="combined.score", title="", xla
 		scale_color_manual(values=cols) +
 		labs(title=title, ylab=ylab, xlab=xlab) + 
 		theme(axis.ticks=element_blank(), 
-			  axis.text.x=element_text(color="grey50"),
-			  axis.text.y=element_text(color="grey50"))
+			  axis.text.x=element_text(color="gray30"),
+			  axis.text.y=element_text(color="gray30"))
 	
 	p
 }
@@ -553,15 +555,15 @@ confusionHeatmap = function(dataframe, facet=colnames(dataframe)[4], ncol=3,
 	}
 	
 	p = ggplot(dataframe, aes(x=x, y=y, fill=freq, label=freq)) +
-		geom_tile(color = "grey50") +
+		geom_tile(color = "gray30") +
 		geom_text(size=10, fontface="bold", color="gray10") + 
 		scale_fill_gradient2(name="Frequency", low="white", high="#35a435") +
 		labs(title=title, x=xlab, y=ylab) + 
 		theme(title=element_text(color="black", size=20, face="bold"),
-			  axis.text=element_text(color="grey50", size=20, face="bold"),
-			  axis.title=element_text(color="grey50", size=20, face="bold"),
-			  legend.text=element_text(color="grey50", size=20, face="bold"),
-			  legend.title=element_text(color="grey50", size=20, face="bold"),
+			  axis.text=element_text(color="gray30", size=20, face="bold"),
+			  axis.title=element_text(color="gray30", size=20, face="bold"),
+			  legend.text=element_text(color="gray30", size=20, face="bold"),
+			  legend.title=element_text(color="gray30", size=20, face="bold"),
 			  strip.text=element_text(color="black", size=20, face="bold"))
 
 	if (!is.null(facet)) {
@@ -601,10 +603,10 @@ barplot = function(dataframe, facet="cancer", ncol=3,
 			guides(fill=FALSE) +
 			labs(title=title, xlab=xlab, ylab=ylab) +
 			theme(title=element_text(color="black", size=20, face="bold"),
-				  axis.text=element_text(color="grey50", size=20, face="bold"),
-			  	  axis.title=element_text(color="grey50", size=20, face="bold"),
-			  	  legend.text=element_text(color="grey50", size=20, face="bold"),
-			  	  legend.title=element_text(color="grey50", size=20, face="bold"),
+				  axis.text=element_text(color="gray30", size=20, face="bold"),
+			  	  axis.title=element_text(color="gray30", size=20, face="bold"),
+			  	  legend.text=element_text(color="gray30", size=20, face="bold"),
+			  	  legend.title=element_text(color="gray30", size=20, face="bold"),
 			  	  strip.text=element_text(color="black", size=20, face="bold"))
 
 	if (!is.null(facet)) {
