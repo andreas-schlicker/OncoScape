@@ -350,7 +350,8 @@ getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.lo
 				  axis.ticks=element_blank(), 
 				  axis.text.x=element_text(color="gray30", face="bold", size=20),
 				  legend.text=element_text(color="gray30", face="bold", size=20),
-				  legend.title=element_blank()) +
+				  legend.title=element_blank(),
+				  legend.position="top") +
 			yaxis.theme
 	
 	if (!is.null(color.mid)) {
