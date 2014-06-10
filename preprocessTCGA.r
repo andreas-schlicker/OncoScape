@@ -28,8 +28,9 @@ replaceExtractId = function(path, pattern, mapping, start, end) {
 # what vector giving the data types of the columns to read, will be passed on to "scan"
 # sampleType either tumor or normal; if "tumor", only samples with tissue types 1 through 9 will
 # be read; if "normal", only samples with tissue types 10 and 11 will be read
+# skip number of lines to skip; default: 1
 # Returns a list with one entry per file. The sample barcode is used as element name
-readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
+readRawData = function(path, pattern, what, sampleType=c("tumor", "normal"), skip=1) {
 	if (!require(stringr)) {
 		stop("Could not load required package \"stringr\".")
 	}
@@ -53,7 +54,7 @@ readRawData = function(path, pattern, what, sampleType=c("tumor", "normal")) {
 		if (as.integer(sampleType) %in% typeCodes) {
 			read[[barcode]] = scan(f, 
 					what=what, 
-					skip=1, 
+					skip=skip, 
 					flush=TRUE, 
 					strip.white=TRUE, 
 					fill=TRUE, 
