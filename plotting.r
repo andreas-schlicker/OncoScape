@@ -340,9 +340,14 @@ heatmapDataframe = function(results,
 ##' @param title main title for the plot; default: ""
 ##' @param ylab title for the y-axis of the plot; default: ""
 ##' @param xlab title for the x-axis of the plot; default: ""
+##' @param xaxis.theme optional ggplot2 theme for the x-axis; default: NULL
 ##' @return a ggplot2 object
 ##' @author Andreas Schlicker
-getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.low="white", color.mid=NULL, color.high="black", title="", ylab="", xlab="") {
+getHeatmap = function(dataFrame, yaxis.theme, 
+					  labels=NULL, breaks=NULL, 
+					  color.low="white", color.mid=NULL, color.high="black", 
+					  title="", ylab="", xlab="",
+					  xaxis.theme=NULL) {
 	p = ggplot(dataFrame, aes(x=cancer, y=gene)) + 
 			geom_tile(aes(fill=score), color = "white") + 
 			labs(title=title, x=xlab, y=ylab) +
@@ -362,6 +367,9 @@ getHeatmap = function(dataFrame, yaxis.theme, labels=NULL, breaks=NULL, color.lo
 	}
 	if (!is.null(labels)) {
 		p = p + scale_y_discrete(breaks=breaks, labels=labels)
+	}
+	if (!is.null(xaxis.theme)) {
+		p = p + xaxis.theme
 	}
 	
 	p
@@ -698,9 +706,10 @@ plotHeatmap = function(params) {
 	
 	png(paste(configOptions$prefix, params$filename, sep="_"), width=5000, height=3000, res=300)
 	print(getHeatmap(dataFrame=subset(params$data, score.type==params$score.type & gene %in% params$topgenes), 
-					yaxis.theme=params$yaxis, 
-					color.low=params$color.low, color.mid=params$color.mid, color.high=params$color.high, 
-					ylab=params$ylab, title=params$title))
+					 yaxis.theme=params$yaxis, 
+					 color.low=params$color.low, color.mid=params$color.mid, color.high=params$color.high, 
+					 ylab=params$ylab, title=params$title, 
+					 xaxis.theme=params$xaxis))
 	invisible(dev.off())
 }
 
