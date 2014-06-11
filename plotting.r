@@ -704,7 +704,7 @@ plotHeatmap = function(params) {
 	params$data[, "cancer"] = factor(params$data[, "cancer"], levels=params$cancer.order)
 	params$data[, "gene"] = factor(params$data[, "gene"], levels=params$gene.order)
 	
-	png(paste(configOptions$prefix, params$filename, sep="_"), width=5000, height=3000, res=300)
+	png(paste(params$prefix, params$filename, sep="_"), width=5000, height=3000, res=300)
 	print(getHeatmap(dataFrame=subset(params$data, score.type==params$score.type & gene %in% params$topgenes), 
 					 yaxis.theme=params$yaxis, 
 					 color.low=params$color.low, color.mid=params$color.mid, color.high=params$color.high, 
