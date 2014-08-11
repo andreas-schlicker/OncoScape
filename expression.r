@@ -139,6 +139,7 @@ doExprAnalysis = function(tumors, normals, genes=NULL, samples=NULL, paired=TRUE
 ##' @param regulation either "down" or "up", whether down- or upregulation in tumors
 ##' should be scored
 ##' @param paired boolean indicating whether paired or unpaired analysis was performed; default: TRUE
+##' @param stddev how many standard deviations does a sample have to be away from the mean to be considered affected; default=1
 ##' @return names list with the results
 ##' @author Andreas Schlicker
 summarizeExpr = function(tumors, 
@@ -147,7 +148,8 @@ summarizeExpr = function(tumors,
 						 genes=NULL, 
 						 wilcox.FDR=0.05,
 						 regulation=c("down", "up"),
-						 paired=TRUE) {
+						 paired=TRUE,
+						 stddev=1) {
 	regulation = match.arg(regulation)
 	
 	# Get the correct comparison function
@@ -171,7 +173,7 @@ summarizeExpr = function(tumors,
 	names(gene.scores) = genes
 	gene.scores[significant.genes] = 1
 	
-	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, 1, paired)
+	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, stddev, paired)
 	
 	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, expr.analysis=expr.analysis)
 }
