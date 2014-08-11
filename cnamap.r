@@ -318,7 +318,7 @@ summarizeCna = function(tumors,
 	names(gene.scores) = genes
 	gene.scores[significant.genes] = 1
 	
-	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, 1, TRUE)
+	affected.samples = countAffectedSamples(genes, significant.genes, tumors, normals, regulation, stddev, TRUE)
 	
 	list(scores=gene.scores, summary=affected.samples$summary, samples=affected.samples$samples, cna.analysis=cna.analysis)
 }
