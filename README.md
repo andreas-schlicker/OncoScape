@@ -15,7 +15,7 @@ Currently, analyses of five data types are implemented in OncoScape:
   4. mutation
   5. shRNA knock-down data
   
-Aberrations in each gene are called for each data type seperately and scored as 0 (no aberration found) or 1 (aberration found). These scores are summed across data types to give the final score. OncoScape differentiates between activating (oncogene-like) and inactivating (tumor suppressor-like) aberrations and calculates independent scores for both directions. It is possible to run the analysis on any combination of these data types. 
+Aberrations in each gene are called for each data type separately and scored as 0 (no aberration found) or 1 (aberration found). These scores are summed across data types to give the final score. OncoScape differentiates between activating (oncogene-like) and inactivating (tumor suppressor-like) aberrations and calculates independent scores for both directions. It is possible to run the analysis on any combination of these data types. 
 
 
 Analysis workflow
@@ -36,16 +36,16 @@ Example scripts for putting everything together are:
   
 Source files
 ------------
-  - achilles.r: functions to analyse data from Project Achilles (http://www.broadinstitute.org/achilles)
-  - cnamap.r: functions to analyse copy number data
+  - achilles.r: functions to analyze data from Project Achilles (http://www.broadinstitute.org/achilles)
+  - cnamap.r: functions to analyze copy number data
   - compare.r: functions for comparing OncoMap results from two different runs
-  - expression.r: functions to analyse gene expression data
-  - methylationmap.r: functions to analyse DNA methylation data
+  - expression.r: functions to analyze gene expression data
+  - methylationmap.r: functions to analyze DNA methylation data
   - plotting.r: functions for plotting results
   - preprocessTCGA.r: functions for preprocessing data from the TCGA pancancer project
   - scoring.r: functions for calculating final scores
-  - sommut.r: functions to analyse somatic mutation data
-  - survival.r: functions to analyse survival data (not used at the moment)
+  - sommut.r: functions to analyze somatic mutation data
+  - survival.r: functions to analyze survival data (not used at the moment)
   - tcga_synapse.r: functions to download TCGA data from Sage Bionetwork's Synapse (www.synapse.org)
-  - uploadResutlsSynapse.r: functions to upload result filees to Synapse
+  - uploadResutlsSynapse.r: functions to upload result files to Synapse
   - utils.r: helper functions used by others in this project
